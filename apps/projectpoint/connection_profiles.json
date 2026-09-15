@@ -1,0 +1,32 @@
+{
+  "https://projectpoint.areal.ru": {
+    "auth_mode": "keycloak_broker",
+    "base_url": "https://projectpoint.areal.ru",
+    "client_id": "projectpoint",
+    "sso_base_url": "https://sso.oz-mine.com:8444",
+    "realm": "highlandgold",
+    "broker_alias": "highlandgoldsaml",
+    "adfs_base_url": "https://adfs.hgml.ru",
+    "source": "preset"
+  },
+  "https://ibim-test.cloud.projectpoint.ru": {
+    "auth_mode": "adfs_direct",
+    "base_url": "https://ibim-test.cloud.projectpoint.ru",
+    "client_id": "ebd1641a-a126-45ef-8a8e-f7f0de6fd3fa",
+    "sso_base_url": "",
+    "realm": "",
+    "broker_alias": "",
+    "adfs_base_url": "https://adfs.tnsv.projectpoint.ru",
+    "source": "preset"
+  },
+  "https://eyurevich.cloud.projectpoint.ru": {
+    "auth_mode": "adfs_direct",
+    "base_url": "https://eyurevich.cloud.projectpoint.ru",
+    "client_id": "4e41e442-caf5-452f-94fb-b937a4b97942",
+    "sso_base_url": "",
+    "realm": "",
+    "broker_alias": "",
+    "adfs_base_url": "https://adfs.tnsv.projectpoint.ru",
+    "source": "preset"
+  }
+}

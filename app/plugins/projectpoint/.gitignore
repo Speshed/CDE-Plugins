@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.spec
+build/
+dist/
+.venv/
+venv/
+.idea/
+.vscode/
+*.log
+~$*.xlsx
+
+# HAR captures may contain cookies/tokens/request metadata

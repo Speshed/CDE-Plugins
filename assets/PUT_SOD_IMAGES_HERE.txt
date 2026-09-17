@@ -1,8 +1,0 @@
-Логотипы/изображения для карточек главного окна положите в эту папку под именами:
-
-sod_larix.png
-sod_vitrocad.png
-sod_signal.png
-sod_projectpoint.png
-
-Формат: PNG, желательно прозрачный фон.

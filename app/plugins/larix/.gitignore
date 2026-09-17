@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.venv/
+venv/
+
+build/
+dist/
+*.spec
+
+.idea/
+.vscode/
+
+# Local verification and spreadsheet tooling artifacts
+.tokensave/
+node_modules/
+outputs/
+inspect_pre/
+t20_tmp/
+embedded_*.xlsx
+*.inspect.ndjson

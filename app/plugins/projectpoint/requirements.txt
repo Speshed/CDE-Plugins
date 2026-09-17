@@ -1,0 +1,7 @@
+PySide6
+requests
+urllib3
+pandas
+numpy
+openpyxl
+pyinstaller

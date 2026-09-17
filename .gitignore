@@ -1,26 +1,31 @@
-# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-*.pyd
-
-# Archive folder
-Archive/
-
-# Virtual environments
-venv/
+*.log
+*.tmp
+*.bak
 .venv/
-env/
-
-# Build files
+venv/
 build/
 dist/
 *.spec
+!/tools/Larix_CDE.spec
+/release/
+/logs/
+*.har
+.env
+.env.*
 
-# IDE
+# User/local state
+connection_profiles.json
+settings.json
+.tokensave
+
+# Editors/OS
 .vscode/
 .idea/
-
-# OS files
 .DS_Store
 Thumbs.db
+
+# Keep project source and bundled templates
+!app/plugins/**/resources/**

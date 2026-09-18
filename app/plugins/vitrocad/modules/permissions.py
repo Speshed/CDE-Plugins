@@ -366,16 +366,24 @@ class PlanRow:
 # Excel parser
 # -----------------------------------------------------------------------------
 class PermissionExcelParser:
-    def __init__(self, excel_path: str, apply_no_access: bool = False):
+    def __init__(self, excel_path: str, apply_no_access: bool = False, sheet_name: str = ""):
         self.excel_path = excel_path
         self.apply_no_access = apply_no_access
+        self.sheet_name = clean_text(sheet_name)
 
     def parse(self) -> List[PermissionEntry]:
         if not os.path.exists(self.excel_path):
             raise FileNotFoundError(f"Excel-файл не найден: {self.excel_path}")
 
         workbook = load_workbook(self.excel_path, read_only=True, data_only=True)
-        sheet = workbook.active
+        if self.sheet_name:
+            if self.sheet_name not in workbook.sheetnames:
+                raise RuntimeError(
+                    f"Лист '{self.sheet_name}' не найден. Доступные: {', '.join(workbook.sheetnames)}"
+                )
+            sheet = workbook[self.sheet_name]
+        else:
+            sheet = workbook.active
         header_row = self._find_header_row(sheet)
 
         level_columns: List[Tuple[int, int]] = []
@@ -964,6 +972,7 @@ class PreviewWorker(QtCore.QObject):
         limit: int,
         allow_suffix: bool,
         apply_no_access: bool,
+        sheet_name: str = "",
     ):
         super().__init__()
         self.server = server
@@ -980,6 +989,7 @@ class PreviewWorker(QtCore.QObject):
         self.limit = limit
         self.allow_suffix = allow_suffix
         self.apply_no_access = apply_no_access
+        self.sheet_name = clean_text(sheet_name)
 
     def _log(self, text: str):
         self.log.emit(text)
@@ -990,11 +1000,14 @@ class PreviewWorker(QtCore.QObject):
             self._log("=" * 70 + "\n")
             self._log("Построение предпросмотра выдачи прав\n")
             self._log(f"Excel: {self.excel_path}\n")
+            self._log(f"Лист Excel: {self.sheet_name or '[активный]'}\n")
             self._log(f"Target: {self.target_name} / {self.target_id}\n")
             self._log(f"Include target in path: {self.include_target_in_path}\n")
             self._log("=" * 70 + "\n\n")
 
-            parser = PermissionExcelParser(self.excel_path, apply_no_access=self.apply_no_access)
+            parser = PermissionExcelParser(
+                self.excel_path, apply_no_access=self.apply_no_access, sheet_name=self.sheet_name
+            )
             entries = parser.parse()
             if self.limit > 0:
                 entries = entries[: self.limit]
@@ -1838,6 +1851,7 @@ class MainWindow(QtWidgets.QMainWindow):
             limit=int(self.sp_limit.value()),
             allow_suffix=self.cb_suffix.isChecked(),
             apply_no_access=self.cb_no_access.isChecked(),
+            sheet_name=getattr(self, "excel_sheet_name", ""),
         )
 
     def _start_preview(self, apply_after_preview: bool = False):

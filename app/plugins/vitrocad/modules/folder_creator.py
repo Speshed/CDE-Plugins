@@ -394,16 +394,24 @@ class ExcelStructureParser:
         "contenttype",
     }
 
-    def __init__(self, excel_path: str, project_as_folder: bool = False):
+    def __init__(self, excel_path: str, project_as_folder: bool = False, sheet_name: str = ""):
         self.excel_path = excel_path
         self.project_as_folder = project_as_folder
+        self.sheet_name = clean_text(sheet_name)
 
     def parse(self) -> List[StructureNode]:
         if not os.path.exists(self.excel_path):
             raise FileNotFoundError(f"Excel-файл не найден: {self.excel_path}")
 
         workbook = load_workbook(self.excel_path, read_only=True, data_only=True)
-        sheet = workbook.active
+        if self.sheet_name:
+            if self.sheet_name not in workbook.sheetnames:
+                raise ValueError(
+                    f"Лист '{self.sheet_name}' не найден. Доступные: {', '.join(workbook.sheetnames)}"
+                )
+            sheet = workbook[self.sheet_name]
+        else:
+            sheet = workbook.active
 
         type_col_idx, header_row_idx = self._find_type_column(sheet)
         level_col_indices = list(range(1, type_col_idx))
@@ -845,6 +853,7 @@ class PlanWorker(QtCore.QObject):
         target_list_id: str,
         project_as_folder: bool,
         type_mapping: Optional[Dict[str, str]] = None,
+        sheet_name: str = "",
     ):
         super().__init__()
         self.excel_path = excel_path
@@ -854,6 +863,7 @@ class PlanWorker(QtCore.QObject):
         self.target_list_id = clean_text(target_list_id) or LIST_ID
         self.project_as_folder = project_as_folder
         self.type_mapping = type_mapping or load_type_mappings()
+        self.sheet_name = clean_text(sheet_name)
 
     @Slot()
     def run(self):
@@ -861,12 +871,13 @@ class PlanWorker(QtCore.QObject):
             self.log.emit("=" * 60 + "\n")
             self.log.emit("Построение предпросмотра структуры VitroCAD\n")
             self.log.emit(f"Excel: {self.excel_path}\n")
+            self.log.emit(f"Лист Excel: {self.sheet_name or '[активный]'}\n")
             self.log.emit(f"TargetId: {self.target_id}\n")
             self.log.emit(f"ListId: {self.target_list_id}\n")
             self.log.emit("=" * 60 + "\n\n")
 
             self.log.emit("[1/4] Чтение Excel\n")
-            parser = ExcelStructureParser(self.excel_path, self.project_as_folder)
+            parser = ExcelStructureParser(self.excel_path, self.project_as_folder, self.sheet_name)
             nodes = parser.parse()
             self.log.emit(f"  узлов структуры: {len(nodes)}\n\n")
 
@@ -1856,7 +1867,7 @@ class MainWindow(QtWidgets.QMainWindow):
         excel_path = self.ed_excel.text().strip()
         if excel_path and os.path.exists(excel_path):
             try:
-                nodes = ExcelStructureParser(excel_path, False).parse()
+                nodes = ExcelStructureParser(excel_path, False, getattr(self, "excel_sheet_name", "")).parse()
                 excel_types = sorted({node.original_type for node in nodes if node.source_row}, key=name_key)
             except Exception as exc:
                 self._log(f"WARNING: не удалось прочитать типы из Excel для просмотра: {exc}")
@@ -2140,6 +2151,7 @@ class MainWindow(QtWidgets.QMainWindow):
             target_list_id=getattr(self, "selected_list_id", LIST_ID),
             project_as_folder=self.cb_project_as_folder.isChecked(),
             type_mapping=self.type_mapping,
+            sheet_name=getattr(self, "excel_sheet_name", ""),
         )
         worker.log.connect(self._log)
         worker.done.connect(self._on_plan_ready)

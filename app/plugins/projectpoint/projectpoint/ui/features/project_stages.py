@@ -199,7 +199,7 @@ class ProjectStagesMixin:
     def _start_project_stages_template(self):
         self._save_template_file(
             "Сохранить шаблон видов документов",
-            "projectpoint_document_views_template.xlsx",
+            "Project Point Виды документов.xlsx",
             write_project_stages_import_template,
         )
 

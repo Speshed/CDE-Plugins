@@ -9,20 +9,48 @@ from PySide6.QtGui import QColor, QPixmap
 
 
 def _load_shared_theme():
+    """Make ``shared.theme_core`` importable in source and packaged modes.
+
+    In the single-file build ``shared.theme_core`` lives in PyInstaller's
+    Python archive, so there is intentionally no physical
+    ``shared/theme_core.py`` to find on disk.  Try the normal import first.
+    The filesystem search is only a development/standalone fallback.
+    """
+    try:
+        __import__("shared.theme_core")
+        return
+    except ModuleNotFoundError as exc:
+        if exc.name not in {"shared", "shared.theme_core"}:
+            raise
+        first_error = exc
+
     starts = []
     raw_assets = os.environ.get("SOD_MANAGER_ASSETS", "").strip()
     if raw_assets:
         starts.append(Path(raw_assets).expanduser().resolve().parent)
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        starts.append(Path(meipass).resolve())
     if getattr(sys, "frozen", False):
         starts.append(Path(sys.executable).resolve().parent)
     starts.append(Path(__file__).resolve().parent)
+
+    seen = set()
     for start in starts:
         for base in (start, *start.parents):
+            key = str(base)
+            if key in seen:
+                continue
+            seen.add(key)
             if (base / "shared" / "theme_core.py").is_file():
-                if str(base) not in sys.path:
-                    sys.path.insert(0, str(base))
+                if key not in sys.path:
+                    sys.path.insert(0, key)
+                __import__("shared.theme_core")
                 return
-    raise ImportError("Larix CDE shared/theme_core.py not found")
+
+    raise ImportError(
+        "Larix CDE shared.theme_core is not bundled and no source fallback was found"
+    ) from first_error
 
 _load_shared_theme()
 from shared.theme_core import (

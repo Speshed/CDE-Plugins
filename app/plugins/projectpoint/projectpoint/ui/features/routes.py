@@ -272,7 +272,7 @@ class RoutesMixin:
     def _start_routes_template(self):
         self._save_template_file(
             "Сохранить шаблон маршрутов согласований",
-            "projectpoint_routes_template.xlsx",
+            "Project Point Согласования.xlsx",
             write_routes_import_template,
         )
 

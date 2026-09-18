@@ -78,9 +78,19 @@ PROJECT_ROOT = PACKAGE_DIR.parent
 
 
 def _profiles_file_path():
-    """Return editable connection profile file next to the app/executable."""
+    """Return the editable connection-profile cache path.
+
+    A frozen portable build must not create files beside Larix_CDE.exe.
+    Store user state in the Windows user profile instead.  Source runs keep
+    the historical project-local file for developer convenience.
+    """
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / "connection_profiles.json"
+        base = (
+            os.environ.get("LOCALAPPDATA")
+            or os.environ.get("APPDATA")
+            or str(Path.home() / ".larix_cde")
+        )
+        return Path(base).expanduser() / "Larix CDE" / "ProjectPoint" / "connection_profiles.json"
     return PROJECT_ROOT / "connection_profiles.json"
 
 
@@ -111,6 +121,7 @@ def save_connection_profile(base_url, profile):
     
     profiles[base_url] = profile
     try:
+        PROFILES_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(PROFILES_FILE, "w", encoding="utf-8") as f:
             json.dump(profiles, f, indent=2, ensure_ascii=False)
     except Exception as e:

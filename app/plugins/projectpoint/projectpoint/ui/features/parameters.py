@@ -17,7 +17,7 @@ from ...api import *
 from ...excel import *
 from ..dialogs import LogDialog
 from ..components import (
-    clear_inline_preview, make_file_row, make_info_banner, make_preview_table, make_preview_header, mark_file_button,
+    clear_inline_preview, copy_selected_excel_file, make_file_path_row, make_file_row, make_info_banner, make_preview_table, make_preview_header, mark_file_button,
     run_inline_excel_preview, show_excel_preview,
 )
 
@@ -36,8 +36,7 @@ class ParametersMixin:
         file_layout.setSpacing(6)
 
         self.params_file_edit = QLineEdit()
-        self.params_file_edit.setReadOnly(True)
-        self.params_file_edit.setPlaceholderText("Excel-файл не выбран")
+        self.params_export_btn = QPushButton()
 
         self.params_template_btn = QPushButton("Скачать шаблон")
         self.params_template_btn.clicked.connect(self._start_params_template)
@@ -49,6 +48,8 @@ class ParametersMixin:
             "Скачайте шаблон, заполните его и загрузите обратно",
             self.params_template_btn, self.params_file_btn,
         ))
+        self.params_export_btn.clicked.connect(lambda: copy_selected_excel_file(self, self.params_file_edit.text(), "Выгрузить Excel-файл параметров"))
+        file_layout.addWidget(make_file_path_row(self.params_file_edit, self.params_export_btn))
 
         sheet_row = QHBoxLayout()
         sheet_row.setSpacing(8)
@@ -115,6 +116,7 @@ class ParametersMixin:
         )
         if path:
             self.params_file_edit.setText(path)
+            self.params_export_btn.setEnabled(True)
             mark_file_button(self.params_file_btn, True)
             self._refresh_action_icons()
             try:
@@ -134,6 +136,7 @@ class ParametersMixin:
                 self.params_sheet_combo.setEnabled(False)
                 self.params_preview_btn.setEnabled(False)
                 self.params_details_btn.setEnabled(False)
+                self.params_export_btn.setEnabled(False)
                 self.params_summary.setText("Не удалось прочитать Excel-файл")
                 QMessageBox.warning(self, "Ошибка", f"Не удалось прочитать листы: {e}")
 
@@ -198,7 +201,7 @@ class ParametersMixin:
     def _start_params_template(self):
         self._save_template_file(
             "Сохранить шаблон параметров",
-            "projectpoint_params_template.xlsx",
+            "Project Point Создание параметров.xlsx",
             write_params_import_template,
         )
 

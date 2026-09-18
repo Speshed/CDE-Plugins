@@ -11,12 +11,52 @@ import requests
 import urllib3
 
 from .config import *
+from .universal_http_auth import authenticate_projectpoint_http
 
 session = requests.Session()
 session.verify = False
 
+# Successful GUI authentication is cached in memory only.  Feature workers reuse
+# this token instead of re-running OAuth for every Excel operation.
+_TOKEN_CACHE: dict[str, str] = {}
+
+
+def normalize_project_base_url(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+    if "://" not in value:
+        value = "https://" + value
+    parsed = urlparse(value)
+    path = (parsed.path or "").rstrip("/")
+    if path.casefold().endswith("/ru") or path.casefold().endswith("/en"):
+        path = path[:-3]
+    return parsed._replace(path=path.rstrip("/"), params="", query="", fragment="").geturl().rstrip("/")
+
+
+def set_cached_access_token(base_url: str, token: str) -> None:
+    key = normalize_project_base_url(base_url).casefold()
+    if key and token:
+        _TOKEN_CACHE[key] = token
+
+
+def get_cached_access_token(base_url: str) -> str | None:
+    key = normalize_project_base_url(base_url).casefold()
+    return _TOKEN_CACHE.get(key) if key else None
+
+
+def clear_cached_access_token(base_url: str | None = None) -> None:
+    if base_url is None:
+        _TOKEN_CACHE.clear()
+        return
+    key = normalize_project_base_url(base_url).casefold()
+    if key:
+        _TOKEN_CACHE.pop(key, None)
+
 __all__ = [
     "session", "force_disable_ssl_verification", "discover_auth_config", "merge_auth_config",
+    "set_cached_access_token", "get_cached_access_token", "clear_cached_access_token",
+    "normalize_project_base_url",
     "authenticate", "authenticate_adfs_direct", "get_access_token",
     "_build_code_verifier", "_build_code_challenge", "_extract_form", "_extract_broker_login_url",
     "_response_debug_snippet", "_extract_auth_code_from_url", "_extract_auth_code_from_response",
@@ -710,15 +750,33 @@ def get_access_token(
     broker_alias=None,
     adfs_base_url=None,
 ):
-    sess = force_disable_ssl_verification(sess)
-    """Unified authentication dispatcher.
-    
-    Selects appropriate auth flow based on auth_mode:
-    - keycloak_broker: Uses Keycloak with broker (production)
-    - adfs_direct: Uses direct ADFS OAuth (test)
+    """Return a Project Point access token.
+
+    Normal GUI operation authenticates once and stores the verified token in
+    memory.  All feature workers reuse that token.  ``universal_http`` remains
+    available for non-interactive/simple SSO flows and automatically discovers
+    the provider from the Project Point frontend.  Browser-only interactive
+    steps are handled by the GUI before feature workers start.
     """
+    sess = force_disable_ssl_verification(sess)
+    cached = get_cached_access_token(base_url)
+    if cached:
+        return cached
+
+    if auth_mode in {"browser_session", "universal"}:
+        raise Exception(
+            "Сессия Project Point не найдена или истекла. Выполните вход в блоке авторизации ещё раз."
+        )
+
+    if auth_mode == "universal_http":
+        result = authenticate_projectpoint_http(base_url, username, password, verify=False)
+        token = result["access_token"]
+        set_cached_access_token(result.get("base_url") or base_url, token)
+        return token
+
+    # Legacy modes are kept only for backward compatibility with old scripts.
     if auth_mode == "keycloak_broker":
-        return authenticate(
+        token = authenticate(
             sess,
             client_id,
             base_url,
@@ -729,8 +787,10 @@ def get_access_token(
             broker_alias=broker_alias,
             adfs_base_url=adfs_base_url,
         )
-    elif auth_mode == "adfs_direct":
-        return authenticate_adfs_direct(
+        set_cached_access_token(base_url, token)
+        return token
+    if auth_mode == "adfs_direct":
+        token = authenticate_adfs_direct(
             sess,
             client_id,
             base_url,
@@ -738,5 +798,7 @@ def get_access_token(
             password,
             adfs_base_url,
         )
-    else:
-        raise Exception(f"Неизвестный auth_mode: {auth_mode}")
+        set_cached_access_token(base_url, token)
+        return token
+    raise Exception(f"Неизвестный auth_mode: {auth_mode}")
+

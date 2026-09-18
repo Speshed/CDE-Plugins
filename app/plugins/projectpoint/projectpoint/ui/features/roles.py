@@ -270,7 +270,7 @@ class RolesMixin:
             self._roles_log_dialog.clear_log()
 
     def _start_roles_template(self):
-        default_name = "projectpoint_roles_import_template.xlsx"
+        default_name = "Project Point Роли и привилегии.xlsx"
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Сохранить шаблон импорта ролей",

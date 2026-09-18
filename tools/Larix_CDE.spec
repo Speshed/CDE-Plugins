@@ -41,7 +41,11 @@ def add_runtime_tree(datas: list[tuple[str, str]], root: Path) -> None:
 
 
 # Shared visual assets are a real data directory and are copied recursively.
-datas = [(str(ROOT / "assets"), "assets")]
+datas = [
+    (str(ROOT / "assets"), "assets"),
+    # Shared runtime modules loaded by plugins at runtime (for example Signal theme loader).
+    (str(ROOT / "shared"), "shared"),
+]
 
 # plugin.py descriptors must be physical files because the launcher discovers
 # them dynamically. Other Python modules stay compiled in PyInstaller's PYZ.

@@ -258,7 +258,7 @@ class ObjectsMixin:
     def _start_objects_template(self):
         self._save_template_file(
             "Сохранить шаблон объектов строительства",
-            "projectpoint_objects_template.xlsx",
+            "Project Point Объекты строительства.xlsx",
             write_objects_import_template,
         )
 

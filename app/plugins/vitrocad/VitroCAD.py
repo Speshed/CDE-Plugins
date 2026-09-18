@@ -332,6 +332,7 @@ class ToolShell(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout(root)
         layout.setContentsMargins(2, 12, 2, 2)
         layout.setSpacing(10)
+        layout.setAlignment(QtCore.Qt.AlignTop)
 
         p.btn_pick_excel.setText("Загрузить файл")
         template_btn = QtWidgets.QPushButton("Скачать шаблон")
@@ -341,15 +342,21 @@ class ToolShell(QtWidgets.QMainWindow):
             "Excel-файл структуры",
             "Выберите заполненный Excel-файл с иерархией папок проекта.",
             p.btn_pick_excel,
-            p.btn_types,
+            template_btn,
         )
+        folder_file_layout = file_card.layout()
+        folder_sheet_row = QtWidgets.QHBoxLayout()
+        folder_sheet_row.setSpacing(10)
+        folder_sheet_row.addWidget(self._field_label("Лист Excel"))
+        self.folder_sheet_combo = NoWheelComboBox()
+        self.folder_sheet_combo.setEnabled(False)
+        self.folder_sheet_combo.setPlaceholderText("Выберите лист")
+        folder_sheet_row.addWidget(self.folder_sheet_combo, 1)
+        folder_file_layout.addLayout(folder_sheet_row)
         layout.addWidget(file_card)
-        self._add_template_button(file_card, template_btn)
         p.ed_excel.hide()
-        p.ed_excel.textChanged.connect(self._update_folder_file_caption)
-
-        content = QtWidgets.QHBoxLayout()
-        content.setSpacing(12)
+        p.ed_excel.textChanged.connect(self._on_folder_excel_changed)
+        self.folder_sheet_combo.currentTextChanged.connect(self._on_folder_sheet_changed)
 
         tree_card, tree_layout = self._make_card(
             "Целевая папка / проект", "folder_icon_variant_1.png", "orange"
@@ -357,9 +364,17 @@ class ToolShell(QtWidgets.QMainWindow):
         tree_layout.addWidget(
             self._make_info_banner("Выберите в дереве папку или проект, внутри которого нужно создать структуру.")
         )
+        types_row = QtWidgets.QHBoxLayout()
+        types_row.addStretch(1)
+        p.btn_types.setObjectName("secondaryButton")
+        p.btn_types.setFixedHeight(34)
+        types_row.addWidget(p.btn_types)
+        tree_layout.addLayout(types_row)
         p.tree_folders.setObjectName("matrixTable")
+        p.tree_folders.setMinimumHeight(150)
+        p.tree_folders.setMaximumHeight(260)
         tree_layout.addWidget(p.tree_folders, 1)
-        content.addWidget(tree_card, 1)
+        layout.addWidget(tree_card)
 
         plan_card, plan_layout = self._make_card("Предпросмотр плана", "preview.png", "green")
         p.tbl_plan.setObjectName("matrixTable")
@@ -386,8 +401,7 @@ class ToolShell(QtWidgets.QMainWindow):
         action_row.addWidget(p.btn_preview)
         action_row.addWidget(p.btn_create)
         plan_layout.addLayout(action_row)
-        content.addWidget(plan_card, 2)
-        layout.addLayout(content, 1)
+        layout.addWidget(plan_card)
 
         p.btn_log.hide()
         p.lbl_auth.hide()
@@ -401,6 +415,7 @@ class ToolShell(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout(root)
         layout.setContentsMargins(2, 12, 2, 2)
         layout.setSpacing(12)
+        layout.setAlignment(QtCore.Qt.AlignTop)
 
         p.btn_excel.setText("Загрузить файл")
         template_btn = QtWidgets.QPushButton("Скачать шаблон")
@@ -409,11 +424,21 @@ class ToolShell(QtWidgets.QMainWindow):
             "Excel-файл матрицы прав",
             "Таблица путей к папкам и прав пользователей/групп.",
             p.btn_excel,
+            template_btn,
         )
+        permissions_file_layout = file_card.layout()
+        permissions_sheet_row = QtWidgets.QHBoxLayout()
+        permissions_sheet_row.setSpacing(10)
+        permissions_sheet_row.addWidget(self._field_label("Лист Excel"))
+        self.permissions_sheet_combo = NoWheelComboBox()
+        self.permissions_sheet_combo.setEnabled(False)
+        self.permissions_sheet_combo.setPlaceholderText("Выберите лист")
+        permissions_sheet_row.addWidget(self.permissions_sheet_combo, 1)
+        permissions_file_layout.addLayout(permissions_sheet_row)
         layout.addWidget(file_card)
-        self._add_template_button(file_card, template_btn)
         p.ed_excel.hide()
-        p.ed_excel.textChanged.connect(self._update_permissions_file_caption)
+        p.ed_excel.textChanged.connect(self._on_permissions_excel_changed)
+        self.permissions_sheet_combo.currentTextChanged.connect(self._on_permissions_sheet_changed)
 
         plan_card, plan_layout = self._make_card("Проверка и применение прав", "preview.png", "orange")
         plan_layout.addWidget(
@@ -445,7 +470,7 @@ class ToolShell(QtWidgets.QMainWindow):
         action_row.addWidget(p.btn_preview)
         action_row.addWidget(p.btn_apply)
         plan_layout.addLayout(action_row)
-        layout.addWidget(plan_card, 1)
+        layout.addWidget(plan_card)
 
         p.btn_log.hide()
         p.lbl_auth.hide()
@@ -460,6 +485,7 @@ class ToolShell(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout(root)
         layout.setContentsMargins(2, 12, 2, 2)
         layout.setSpacing(12)
+        layout.setAlignment(QtCore.Qt.AlignTop)
 
         p.btn_excel.setText("Загрузить файл")
         template_btn = QtWidgets.QPushButton("Скачать шаблон")
@@ -468,6 +494,7 @@ class ToolShell(QtWidgets.QMainWindow):
             "Excel-файл план-графика",
             "Загрузите план-график и выберите лист для сопоставления с VitroCAD.",
             p.btn_excel,
+            template_btn,
         )
         file_inner = file_card.layout()
         sheet_row = QtWidgets.QHBoxLayout()
@@ -477,7 +504,6 @@ class ToolShell(QtWidgets.QMainWindow):
         sheet_row.addWidget(p.cb_sheet, 1)
         file_inner.addLayout(sheet_row)
         layout.addWidget(file_card)
-        self._add_template_button(file_card, template_btn)
 
         p.lbl_excel.hide()
         # lbl_excel получает имя файла из существующей логики, поэтому используем
@@ -485,9 +511,6 @@ class ToolShell(QtWidgets.QMainWindow):
         p.btn_excel.clicked.connect(
             lambda: QtCore.QTimer.singleShot(0, lambda: self._update_schedule_file_caption(p.lbl_excel.text()))
         )
-
-        middle = QtWidgets.QHBoxLayout()
-        middle.setSpacing(12)
 
         required_card, required_layout = self._make_card("Проверка параметров", "comparison.png", "orange")
         p.lbl_required.setObjectName("rowSubtitle")
@@ -498,7 +521,7 @@ class ToolShell(QtWidgets.QMainWindow):
         p.btn_required.setObjectName("secondaryButton")
         p.btn_required.setFixedHeight(36)
         required_layout.addWidget(p.btn_required, 0, QtCore.Qt.AlignRight)
-        middle.addWidget(required_card, 1)
+        layout.addWidget(required_card)
 
         preview_card, preview_layout = self._make_card("Предпросмотр данных", "preview.png", "green")
         p.preview_table.setObjectName("matrixTable")
@@ -515,8 +538,7 @@ class ToolShell(QtWidgets.QMainWindow):
         )
         preview_footer.addWidget(self.schedule_details_btn)
         preview_layout.addLayout(preview_footer)
-        middle.addWidget(preview_card, 2)
-        layout.addLayout(middle, 1)
+        layout.addWidget(preview_card)
 
         run_card, run_layout = self._make_card("Синхронизация план-графика", "sync.png", "orange")
         run_layout.addWidget(
@@ -592,7 +614,7 @@ class ToolShell(QtWidgets.QMainWindow):
         header.setSpacing(12)
         title_col = QtWidgets.QVBoxLayout()
         title_col.setSpacing(2)
-        title = QtWidgets.QLabel("Vitro")
+        title = QtWidgets.QLabel("VitroCAD")
         title.setObjectName("pageTitle")
         subtitle = QtWidgets.QLabel("Структура проектов, права доступа и синхронизация план-графика.")
         subtitle.setObjectName("pageSubtitle")
@@ -615,7 +637,7 @@ class ToolShell(QtWidgets.QMainWindow):
         self.auth_text.setObjectName("authStatus")
         self._add_card_header(
             auth_layout,
-            "Подключение к Larix",
+            "Подключение к VitroCAD",
             "free-icon-login-2623062.png",
             "purple",
             self.auth_text,
@@ -702,6 +724,72 @@ class ToolShell(QtWidgets.QMainWindow):
         self._update_log_tooltip()
 
     # ------------------------------------------------------------------
+    # Excel-листы
+    # ------------------------------------------------------------------
+    def _populate_excel_sheet_combo(
+        self, path: str, combo: QtWidgets.QComboBox, controller: QtWidgets.QMainWindow
+    ) -> None:
+        previous = combo.currentText().strip()
+        names = []
+        active = ""
+        if path and Path(path).is_file():
+            workbook = folder_creator.load_workbook(path, read_only=True, data_only=True)
+            try:
+                names = list(workbook.sheetnames)
+                active = workbook.active.title if workbook.sheetnames else ""
+            finally:
+                workbook.close()
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(names)
+        target = previous if previous in names else (active if active in names else (names[0] if names else ""))
+        if target:
+            combo.setCurrentText(target)
+        else:
+            combo.setCurrentIndex(-1)
+        combo.setEnabled(bool(names))
+        combo.blockSignals(False)
+        controller.excel_sheet_name = target
+        try:
+            controller._invalidate_plan()
+        except Exception:
+            pass
+
+    def _on_folder_excel_changed(self, path: str) -> None:
+        self._update_folder_file_caption(path)
+        try:
+            self._populate_excel_sheet_combo(path, self.folder_sheet_combo, self.folder_page)
+        except Exception as exc:
+            self.folder_sheet_combo.clear()
+            self.folder_sheet_combo.setEnabled(False)
+            self.folder_page.excel_sheet_name = ""
+            self.statusBar().showMessage(f"Не удалось прочитать листы Excel: {exc}", 7000)
+
+    def _on_permissions_excel_changed(self, path: str) -> None:
+        self._update_permissions_file_caption(path)
+        try:
+            self._populate_excel_sheet_combo(path, self.permissions_sheet_combo, self.permissions_page)
+        except Exception as exc:
+            self.permissions_sheet_combo.clear()
+            self.permissions_sheet_combo.setEnabled(False)
+            self.permissions_page.excel_sheet_name = ""
+            self.statusBar().showMessage(f"Не удалось прочитать листы Excel: {exc}", 7000)
+
+    def _on_folder_sheet_changed(self, sheet_name: str) -> None:
+        self.folder_page.excel_sheet_name = str(sheet_name or "").strip()
+        try:
+            self.folder_page._invalidate_plan()
+        except Exception:
+            pass
+
+    def _on_permissions_sheet_changed(self, sheet_name: str) -> None:
+        self.permissions_page.excel_sheet_name = str(sheet_name or "").strip()
+        try:
+            self.permissions_page._invalidate_plan()
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
     # Файловые подписи
     # ------------------------------------------------------------------
     def _update_folder_file_caption(self, path: str) -> None:
@@ -723,9 +811,9 @@ class ToolShell(QtWidgets.QMainWindow):
     def _download_vitro_template(self, kind: str) -> None:
         """Save one of the built-in import templates chosen by the user."""
         defaults = {
-            "folders": ("Сохранить шаблон папочной структуры", "vitrocad_folder_template.xlsx"),
-            "permissions": ("Сохранить шаблон матрицы прав", "vitrocad_permissions_template.xlsx"),
-            "schedule": ("Сохранить шаблон плана-графика", "vitrocad_schedule_template.xlsx"),
+            "folders": ("Сохранить шаблон папочной структуры", "VitroCAD Структура папок.xlsx"),
+            "permissions": ("Сохранить шаблон матрицы прав", "VitroCAD Права доступа.xlsx"),
+            "schedule": ("Сохранить шаблон плана-графика", "VitroCAD План-график.xlsx"),
         }
         if kind not in defaults:
             raise ValueError(f"Неизвестный тип шаблона: {kind}")

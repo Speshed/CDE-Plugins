@@ -4,7 +4,7 @@ import sys
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
-    QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+    QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget,
 )
 
@@ -18,14 +18,19 @@ from shared.ui_components import (
 )
 from shared.theme_core import shared_style_overrides, install_window_state
 from .dialogs import ConnectionDialog, LogDialog, LogSignal, ObjectsLoadSignal
+from .components import make_badge
 from .features import ProjectStagesMixin, ParametersMixin, ContentTypesMixin, RoutesMixin, RolesMixin, ObjectsMixin, ConnectionMixin
 
 __all__ = ["MainWindow"]
 
 
 class MainWindow(ParametersMixin, ProjectStagesMixin, ContentTypesMixin, RoutesMixin, RolesMixin, ObjectsMixin, ConnectionMixin, QMainWindow):
+    auth_http_finished = QtCore.Signal(object)
+
     def __init__(self):
         super().__init__()
+        self.auth_http_finished.connect(self._handle_http_auth_result)
+        self._browser_auth_dialog = None
         self.setWindowTitle("Larix CDE — Project Point")
         self.resize(1200, 700)
         self.setMinimumSize(1020, 620)
@@ -125,10 +130,12 @@ class MainWindow(ParametersMixin, ProjectStagesMixin, ContentTypesMixin, RoutesM
         auth_card = QFrame()
         auth_card.setObjectName("card")
         auth_layout = QVBoxLayout(auth_card)
-        auth_layout.setContentsMargins(14, 9, 14, 10)
-        auth_layout.setSpacing(6)
+        auth_layout.setContentsMargins(14, 11, 14, 13)
+        auth_layout.setSpacing(8)
 
         auth_header = QHBoxLayout()
+        auth_header.setSpacing(10)
+        auth_header.addWidget(make_badge(self.asset_dir, "free-icon-login-2623062.png", self.is_dark_theme, "info", 32))
         auth_title = QLabel("Подключение к Project Point")
         auth_title.setObjectName("cardTitle")
         auth_header.addWidget(auth_title)
@@ -141,24 +148,13 @@ class MainWindow(ParametersMixin, ProjectStagesMixin, ContentTypesMixin, RoutesM
 
         self.fields = {}
 
-        # Hidden connection widgets/state used by existing auth and worker methods.
-        self.profile_combo = QComboBox(self)
-        self.profile_combo.addItem("projectpoint.areal.ru", "Production")
-        self.profile_combo.addItem("ibim-test.cloud.projectpoint.ru", "Test")
-        self.profile_combo.addItem("eyurevich.cloud.projectpoint.ru", "Eyurevich")
-        self.profile_combo.addItem("Custom", "Custom")
-        self.profile_combo.currentIndexChanged.connect(self._on_profile_changed)
-        self.profile_combo.setVisible(False)
-
+        # Universal connection state.  No predefined Project Point environment
+        # or SSO profile is selected here; the auth layer discovers the current
+        # site's configuration at runtime.
         hidden_defaults = {
-            "BASE_URL": CONNECTION_PRESETS["Production"]["base_url"],
+            "BASE_URL": "",
             "USERNAME": "",
             "PASSWORD": "",
-            "CLIENT_ID": DEFAULT_CLIENT_ID,
-            "SSO_BASE_URL": DEFAULT_SSO_BASE_URL,
-            "REALM": DEFAULT_REALM,
-            "BROKER_ALIAS": DEFAULT_BROKER_ALIAS,
-            "ADFS_URL": DEFAULT_ADFS_BASE_URL,
         }
         for key, value in hidden_defaults.items():
             edit = QLineEdit(value, self)
@@ -167,23 +163,13 @@ class MainWindow(ParametersMixin, ProjectStagesMixin, ContentTypesMixin, RoutesM
             edit.setVisible(False)
             self.fields[key] = edit
 
-        # Hidden compatibility controls referenced by older profile/toggle logic.
-        self.connection_details_group = QWidget(self)
-        self.connection_details_group.setVisible(False)
-        self.connection_toggle_btn = QPushButton("Показать настройки", self)
-        self.connection_toggle_btn.setVisible(False)
-        self.advanced_group = QWidget(self)
-        self.advanced_group.setVisible(False)
-        self.advanced_toggle_btn = QPushButton("▼ Расширенные настройки", self)
-        self.advanced_toggle_btn.setVisible(False)
-
         compact_row = QHBoxLayout()
         compact_row.setSpacing(10)
         self.connection_summary_label = QLabel("")
         self.connection_summary_label.setObjectName("rowSubtitle")
         compact_row.addWidget(self.connection_summary_label, 1)
 
-        self.auth_btn = QPushButton("Вход")
+        self.auth_btn = QPushButton("Войти")
         self.auth_btn.setObjectName("loginButton")
         self.auth_btn.setMinimumHeight(36)
         self.auth_btn.setMinimumWidth(120)
@@ -194,9 +180,9 @@ class MainWindow(ParametersMixin, ProjectStagesMixin, ContentTypesMixin, RoutesM
 
         self.auth_config_source = QLabel("")
         self.auth_config_source.setObjectName("rowSubtitle")
+        self.auth_config_source.setWordWrap(True)
         auth_layout.addWidget(self.auth_config_source)
 
-        self._on_profile_changed(self.profile_combo.currentIndex())
         self._update_connection_summary()
         root.addWidget(auth_card)
 

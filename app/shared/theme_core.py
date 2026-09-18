@@ -374,6 +374,16 @@ def shared_style_overrides(dark: bool) -> str:
     info_bg = "#171717" if dark else "#FAFAFA"
     selected = "rgba(247,146,30,0.10)"
     selected_border = "rgba(247,146,30,0.58)"
+
+    # Scrollbars mirror Desktop-manager: 12 px track, 6 px thumb radius,
+    # 16 px arrow-button area and orange interaction states.
+    assets = shared_asset_dir(Path(__file__).resolve().parent)
+    arrow_suffix = "-white" if dark else ""
+    scroll_left = asset_path(assets, f"arrow-left{arrow_suffix}.png")
+    scroll_right = asset_path(assets, f"arrow-right{arrow_suffix}.png")
+    scroll_up = asset_path(assets, f"arrow-up{arrow_suffix}.png")
+    scroll_down = asset_path(assets, f"arrow-down{arrow_suffix}.png")
+    scroll_track = "transparent" if dark else "#FFFFFF"
     return f"""
         QPushButton#backToManagerButton {{
             background: transparent; color: {muted}; border: 1px solid {border};
@@ -430,31 +440,83 @@ def shared_style_overrides(dark: bool) -> str:
         QFrame#infoBanner {{ background: {info_bg}; border: 1px solid {soft}; border-radius: 8px; }}
         QLabel#infoText {{ color: {muted}; background: transparent; }}
 
+        /* Desktop-manager scrollbars */
         QScrollBar:vertical {{
-            background: transparent; width: 8px; margin: 2px 1px 2px 1px; border: none;
+            background: {scroll_track}; width: 12px; margin: 16px 0 16px 0; border: none;
         }}
         QScrollBar::handle:vertical {{
-            background: {scroll}; min-height: 30px; border: none; border-radius: 4px;
+            background: rgba(247, 146, 30, 0.12); min-height: 24px;
+            border-radius: 6px; border: 1px solid #FFA74B;
         }}
-        QScrollBar::handle:vertical:hover {{ background: {scroll_hover}; }}
-        QScrollBar::handle:vertical:pressed {{ background: {scroll_pressed}; }}
+        QScrollBar::handle:vertical:hover {{
+            background: rgba(247, 146, 30, 0.15); border: 1px solid #FFA74B;
+        }}
+        QScrollBar::handle:vertical:pressed {{
+            background: rgba(247, 146, 30, 0.25); border: 1px solid #E07E12;
+        }}
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-            height: 0px; width: 0px; background: transparent; border: none;
+            background: {scroll_track}; height: 16px; subcontrol-origin: margin;
+            border: none; border-radius: 0; image: none;
         }}
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: transparent; }}
+        QScrollBar::add-line:vertical {{ subcontrol-position: bottom; }}
+        QScrollBar::sub-line:vertical {{ subcontrol-position: top; }}
+        QScrollBar::add-line:vertical:hover, QScrollBar::sub-line:vertical:hover {{
+            background: rgba(247, 146, 30, 0.15);
+        }}
+        QScrollBar::add-line:vertical:pressed, QScrollBar::sub-line:vertical:pressed {{
+            background: rgba(247, 146, 30, 0.25);
+        }}
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: {scroll_track}; }}
 
         QScrollBar:horizontal {{
-            background: transparent; height: 8px; margin: 1px 2px 1px 2px; border: none;
+            background: {scroll_track}; height: 12px; margin: 0 16px 0 16px; border: none;
         }}
         QScrollBar::handle:horizontal {{
-            background: {scroll}; min-width: 30px; border: none; border-radius: 4px;
+            background: rgba(247, 146, 30, 0.12); min-width: 24px;
+            border-radius: 6px; border: 1px solid #FFA74B;
         }}
-        QScrollBar::handle:horizontal:hover {{ background: {scroll_hover}; }}
-        QScrollBar::handle:horizontal:pressed {{ background: {scroll_pressed}; }}
+        QScrollBar::handle:horizontal:hover {{
+            background: rgba(247, 146, 30, 0.15); border: 1px solid #FFA74B;
+        }}
+        QScrollBar::handle:horizontal:pressed {{
+            background: rgba(247, 146, 30, 0.25); border: 1px solid #E07E12;
+        }}
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
-            height: 0px; width: 0px; background: transparent; border: none;
+            background: {scroll_track}; width: 16px; subcontrol-origin: margin;
+            border: none; border-radius: 0; image: none;
         }}
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{ background: transparent; }}
+        QScrollBar::add-line:horizontal {{ subcontrol-position: right; }}
+        QScrollBar::sub-line:horizontal {{ subcontrol-position: left; }}
+        QScrollBar::add-line:horizontal:hover, QScrollBar::sub-line:horizontal:hover {{
+            background: rgba(247, 146, 30, 0.15);
+        }}
+        QScrollBar::add-line:horizontal:pressed, QScrollBar::sub-line:horizontal:pressed {{
+            background: rgba(247, 146, 30, 0.25);
+        }}
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{ background: {scroll_track}; }}
+
+        QScrollBar::left-arrow:horizontal {{ image: url("{scroll_left}"); width: 12px; height: 12px; }}
+        QScrollBar::right-arrow:horizontal {{ image: url("{scroll_right}"); width: 12px; height: 12px; }}
+        QScrollBar::up-arrow:vertical {{ image: url("{scroll_up}"); width: 12px; height: 12px; }}
+        QScrollBar::down-arrow:vertical {{ image: url("{scroll_down}"); width: 12px; height: 12px; }}
+
+        QMenu QScrollBar:vertical {{
+            background: {scroll_track}; width: 12px; margin: 0; border: none;
+        }}
+        QMenu QScrollBar::handle:vertical {{
+            background: rgba(247, 146, 30, 0.12); min-height: 24px;
+            border-radius: 6px; border: 1px solid #FFA74B;
+        }}
+        QMenu QScrollBar::handle:vertical:hover {{
+            background: rgba(247, 146, 30, 0.15); border: 1px solid #FFA74B;
+        }}
+        QMenu QScrollBar::handle:vertical:pressed {{
+            background: rgba(247, 146, 30, 0.25); border: 1px solid #E07E12;
+        }}
+        QMenu QScrollBar::add-line:vertical, QMenu QScrollBar::sub-line:vertical {{
+            background: {scroll_track}; height: 0; border: none;
+        }}
+        QMenu QScrollBar::add-page:vertical, QMenu QScrollBar::sub-page:vertical {{ background: {scroll_track}; }}
 
         QStatusBar#unifiedStatusBar {{
             background: {bg}; color: {muted}; border-top: 1px solid {soft}; padding: 0 6px;

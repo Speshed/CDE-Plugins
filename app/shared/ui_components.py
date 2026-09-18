@@ -22,6 +22,78 @@ class NoWheelTabBar(QtWidgets.QTabBar):
         event.accept()
 
 
+class _ComboWheelScrollFilter(QtCore.QObject):
+    """Route wheel gestures over closed QComboBox widgets to the page scroll area.
+
+    A closed combo should not change its value just because the pointer happens to
+    be above it while the user scrolls the form. When the popup list is open, Qt
+    keeps the normal combo scrolling behaviour.
+    """
+
+    def __init__(self, root_window: QtWidgets.QWidget):
+        super().__init__(root_window)
+        self.root_window = root_window
+
+    @staticmethod
+    def _nearest_scroll_area(widget: QtWidgets.QWidget):
+        current = widget.parentWidget()
+        while current is not None:
+            if isinstance(current, QtWidgets.QAbstractScrollArea):
+                return current
+            current = current.parentWidget()
+        return None
+
+    def eventFilter(self, obj, event):
+        if event.type() != QtCore.QEvent.Wheel or not isinstance(obj, QtWidgets.QComboBox):
+            return False
+        try:
+            if obj.window() is not self.root_window:
+                return False
+        except RuntimeError:
+            return False
+
+        view = obj.view()
+        if view is not None and view.isVisible():
+            return False
+
+        scroll_area = self._nearest_scroll_area(obj)
+        if scroll_area is None:
+            # No page scroller: simply suppress accidental combo changes.
+            event.accept()
+            return True
+
+        bar = scroll_area.verticalScrollBar()
+        pixel_delta = event.pixelDelta().y()
+        angle_delta = event.angleDelta().y()
+        if pixel_delta:
+            delta = pixel_delta
+        elif angle_delta:
+            steps = angle_delta / 120.0
+            delta = int(steps * max(bar.singleStep() * 3, 36))
+        else:
+            delta = 0
+        if delta:
+            bar.setValue(bar.value() - delta)
+        event.accept()
+        return True
+
+
+def install_combo_wheel_scroll(root_window: QtWidgets.QWidget):
+    """Install one application-level combo wheel filter for a tool window."""
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return None
+    old_filter = getattr(root_window, "_combo_wheel_scroll_filter", None)
+    if old_filter is not None:
+        try:
+            app.removeEventFilter(old_filter)
+        except RuntimeError:
+            pass
+    event_filter = _ComboWheelScrollFilter(root_window)
+    root_window._combo_wheel_scroll_filter = event_filter
+    app.installEventFilter(event_filter)
+    return event_filter
+
 
 class PreviewHeader(QtWidgets.QWidget):
     """Shared preview-card heading with the global preview icon."""
@@ -225,6 +297,7 @@ __all__ = [
     "fit_preview_height",
     "make_details_button",
     "show_table_details",
+    "install_combo_wheel_scroll",
 ]
 
 

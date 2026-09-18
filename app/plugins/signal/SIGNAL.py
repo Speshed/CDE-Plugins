@@ -68,6 +68,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.utils import get_column_letter
 
 WEBENGINE_AVAILABLE = False
 QtWebEngineWidgets = None
@@ -480,16 +481,16 @@ class FolderCreatePlanRow:
 # -----------------------------------------------------------------------------
 # Excel template generation
 # -----------------------------------------------------------------------------
-TEMPLATE_ORANGE = "F7921E"
-TEMPLATE_DARK = "2F2F2F"
-TEMPLATE_LIGHT = "FFF4E8"
-TEMPLATE_BORDER = "D9D9D9"
+TEMPLATE_ORANGE = "D9D9D9"
+TEMPLATE_DARK = "E7E6E6"
+TEMPLATE_LIGHT = "F7F7F7"
+TEMPLATE_BORDER = "A6A6A6"
 TEMPLATE_MUTED = "666666"
 
 
 def _template_header_style(cell) -> None:
     cell.fill = PatternFill("solid", fgColor=TEMPLATE_ORANGE)
-    cell.font = Font(color="FFFFFF", bold=True)
+    cell.font = Font(color="222222", bold=True)
     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     thin = Side(style="thin", color=TEMPLATE_BORDER)
     cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -505,7 +506,7 @@ def _prepare_template_sheet(ws, title: str, subtitle: str, headers: Sequence[str
     last_col = max(1, len(headers))
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
     ws.cell(1, 1, title)
-    ws.cell(1, 1).font = Font(size=15, bold=True, color="FFFFFF")
+    ws.cell(1, 1).font = Font(size=14, bold=True, color="222222")
     ws.cell(1, 1).fill = PatternFill("solid", fgColor=TEMPLATE_DARK)
     ws.cell(1, 1).alignment = Alignment(vertical="center")
     ws.row_dimensions[1].height = 28
@@ -534,7 +535,7 @@ def _add_template_notes_sheet(wb: Workbook, rows: Sequence[Tuple[str, str]]) -> 
     ws = wb.create_sheet("Инструкция")
     ws.sheet_view.showGridLines = False
     ws["A1"] = "Как заполнять шаблон"
-    ws["A1"].font = Font(size=15, bold=True, color="FFFFFF")
+    ws["A1"].font = Font(size=14, bold=True, color="222222")
     ws["A1"].fill = PatternFill("solid", fgColor=TEMPLATE_DARK)
     ws["A1"].alignment = Alignment(vertical="center")
     ws.merge_cells("A1:B1")
@@ -554,7 +555,7 @@ def _add_template_notes_sheet(wb: Workbook, rows: Sequence[Tuple[str, str]]) -> 
 
 
 def build_excel_template(template_kind: str, target_path: str) -> None:
-    """Creates one of the three user-facing SGNL Excel templates."""
+    """Creates one of the user-facing SGNL Excel templates."""
     kind = clean_text(template_kind).casefold()
     wb = Workbook()
     ws = wb.active
@@ -564,7 +565,7 @@ def build_excel_template(template_kind: str, target_path: str) -> None:
         headers = ["Уровень 1", "Уровень 2", "Уровень 3", "Роль 1", "Роль 2", "Роль 3"]
         _prepare_template_sheet(
             ws,
-            "SGNL — шаблон ролевой матрицы",
+            "SIGNAL Docs — Ролевая матрица",
             "Колонки «Роль 1/2/3» замените точными названиями ролей из SGNL. Значения прав: П, С, З, Р, - или пусто.",
             headers,
             [28, 28, 34, 22, 22, 22],
@@ -606,7 +607,7 @@ def build_excel_template(template_kind: str, target_path: str) -> None:
         headers = ["Уровень 1", "Уровень 2", "Уровень 3", "Уровень 4", "Уровень 5"]
         _prepare_template_sheet(
             ws,
-            "SGNL — шаблон папочной структуры",
+            "SIGNAL Docs — Папочная структура",
             "Заполняйте иерархию слева направо. Пустая ячейка наследует предыдущий заполненный уровень; новые папки создаются только если их ещё нет.",
             headers,
             [30, 30, 34, 34, 34],
@@ -634,7 +635,7 @@ def build_excel_template(template_kind: str, target_path: str) -> None:
         headers = ["Название", "Тип", "Область", "Обязательный", "Значения списка"]
         _prepare_template_sheet(
             ws,
-            "SGNL — шаблон атрибутов",
+            "SIGNAL Docs — Атрибуты",
             "Одна строка = один атрибут. Для типа «Список» варианты указываются через ;. Допустимые типы: Текст, Да/Нет, Дата, Список.",
             headers,
             [34, 20, 28, 18, 55],
@@ -667,6 +668,113 @@ def build_excel_template(template_kind: str, target_path: str) -> None:
             ("Обязательный", "Да или Нет."),
             ("Значения списка", "Заполняется только для типа «Список». Значения перечисляются через ; в требуемом порядке."),
         ])
+
+    elif kind == "reviews":
+        # Exact three-sheet structure used by the approval-route importer.
+        ws.title = REVIEW_MAIN_SHEET if "REVIEW_MAIN_SHEET" in globals() else "5. Маршруты согласований"
+        main_name = ws.title
+        settings_name = REVIEW_SETTINGS_SHEET if "REVIEW_SETTINGS_SHEET" in globals() else "5.1 Настройка_Согласований"
+        approver_settings_name = REVIEW_APPROVER_SETTINGS_SHEET if "REVIEW_APPROVER_SETTINGS_SHEET" in globals() else "5.2 Настройка_Согласований"
+
+        ws.merge_cells("A1:A3")
+        ws["A1"] = "Наименование маршрута согласования"
+        for stage in range(1, 8):
+            col1 = 2 + (stage - 1) * 2
+            col2 = col1 + 1
+            ws.merge_cells(start_row=1, start_column=col1, end_row=1, end_column=col2)
+            ws.cell(1, col1, f"{stage} Этап")
+            ws.merge_cells(start_row=2, start_column=col1, end_row=3, end_column=col1)
+            ws.merge_cells(start_row=2, start_column=col2, end_row=3, end_column=col2)
+            ws.cell(2, col1, "Согласующий 1")
+            ws.cell(2, col2, "Согласующий 2")
+        ws.append([])
+        route_examples = [
+            ["Согласование РД", "Иванов Иван", None, "Петров Пётр", None, "BIM-специалист"],
+            ["Согласование ПД", "Иванов Иван", "Петров Пётр", "BIM-специалист"],
+        ]
+        for r, row in enumerate(route_examples, 4):
+            for c, value in enumerate(row, 1):
+                ws.cell(r, c, value)
+        ws.column_dimensions["A"].width = 34
+        for col in range(2, 16):
+            ws.column_dimensions[get_column_letter(col)].width = 24
+
+        settings_ws = wb.create_sheet(settings_name)
+        settings_ws.merge_cells("A1:A3")
+        settings_ws.merge_cells("B1:J1")
+        settings_ws["B1"] = "Настройки"
+        settings_ws.merge_cells("B2:C2")
+        settings_ws["B2"] = "Доступ"
+        settings_ws.merge_cells("D2:J2")
+        settings_ws["D2"] = "Продолжительность шага, р.д."
+        settings_ws["B3"] = "Просмотр"
+        settings_ws["C3"] = "Создание"
+        for stage in range(1, 8):
+            settings_ws.cell(3, 3 + stage, f"{stage} Этап")
+        settings_rows = [
+            ["Согласование РД", "ГИП", "РП", 2, 3, 1],
+            ["Согласование ПД", "РП", "ГИП", 1, 3],
+        ]
+        for r, row in enumerate(settings_rows, 4):
+            for c, value in enumerate(row, 1):
+                settings_ws.cell(r, c, value)
+        settings_ws.column_dimensions["A"].width = 34
+        settings_ws.column_dimensions["B"].width = 24
+        settings_ws.column_dimensions["C"].width = 24
+        for col in range(4, 11):
+            settings_ws.column_dimensions[get_column_letter(col)].width = 18
+
+        detail_ws = wb.create_sheet(approver_settings_name)
+        detail_ws.merge_cells("A1:A3")
+        detail_ws["A1"] = "Наименование маршрута согласования"
+        for stage in range(1, 8):
+            start_col = 2 + (stage - 1) * 4
+            detail_ws.merge_cells(start_row=1, start_column=start_col, end_row=1, end_column=start_col + 3)
+            detail_ws.cell(1, start_col, f"{stage} Этап")
+            detail_ws.merge_cells(start_row=2, start_column=start_col, end_row=3, end_column=start_col + 1)
+            detail_ws.merge_cells(start_row=2, start_column=start_col + 2, end_row=3, end_column=start_col + 3)
+            detail_ws.cell(2, start_col, "Согласующий 1")
+            detail_ws.cell(2, start_col + 2, "Согласующий 2")
+            for offset in (0, 2):
+                detail_ws.cell(4, start_col + offset, "Отмена процесса согласования")
+                detail_ws.cell(4, start_col + offset + 1, "Обязательность проверки")
+        detail_rows = [
+            ["Согласование РД", "Да", "Да", "Да", "Да", "Да", "Да"],
+            ["Согласование ПД", "Нет", "Да", "Нет", "Да"],
+        ]
+        for r, row in enumerate(detail_rows, 5):
+            for c, value in enumerate(row, 1):
+                detail_ws.cell(r, c, value)
+        detail_ws.column_dimensions["A"].width = 34
+        for col in range(2, 30):
+            detail_ws.column_dimensions[get_column_letter(col)].width = 22
+        yes_no = DataValidation(type="list", formula1='"Да,Нет"', allow_blank=True)
+        yes_no.showErrorMessage = True
+        detail_ws.add_data_validation(yes_no)
+        yes_no.add("B5:AC504")
+
+        notes = wb.create_sheet("Инструкция")
+        _prepare_template_sheet(
+            notes,
+            "SIGNAL Docs — Маршруты согласований",
+            "Названия маршрутов на трёх рабочих листах должны совпадать. Пользователи и роли сопоставляются с выбранным проектом SGNL.",
+            ["Поле", "Как заполнять"],
+            [34, 95],
+        )
+        notes_rows = [
+            ("5. Маршруты согласований", "До 7 этапов; в каждом этапе можно указать до двух согласующих. Два согласующих одного этапа выполняются параллельно."),
+            ("5.1 — Просмотр / Создание", "Укажите точные названия ролей SGNL. Можно перечислить несколько ролей через ;"),
+            ("Продолжительность", "Количество рабочих дней. Пустая ячейка = 1 день."),
+            ("Отмена процесса согласования", "Да/Нет. Пустая ячейка сохраняет стандартное значение SGNL — Да."),
+            ("Обязательность проверки", "Да/Нет. Пустая ячейка сохраняет стандартное значение SGNL — Да."),
+            ("Повторный запуск", "Маршрут с уже существующим именем повторно не создаётся."),
+        ]
+        for r, row in enumerate(notes_rows, 4):
+            notes.cell(r, 1, row[0])
+            notes.cell(r, 2, row[1])
+            _template_body_style(notes.cell(r, 1))
+            _template_body_style(notes.cell(r, 2))
+        notes.freeze_panes = "A4"
 
     else:
         raise ValueError(f"Неизвестный тип Excel-шаблона: {template_kind}")
@@ -722,14 +830,23 @@ def _split_attribute_values(value: object) -> List[str]:
     return values
 
 
-def _parse_attribute_workbook(workbook: Any) -> AttributeExcelParseResult:
+def _parse_attribute_workbook(workbook: Any, sheet_name: str = "") -> AttributeExcelParseResult:
     errors: List[str] = []
     rows: List[dict] = []
     drafts: List[dict] = []
 
-    if "Атрибуты" not in workbook.sheetnames:
-        return AttributeExcelParseResult([], [], ["В Excel отсутствует лист «Атрибуты»."])
-    sheet = workbook["Атрибуты"]
+    requested = clean_text(sheet_name)
+    if requested:
+        if requested not in workbook.sheetnames:
+            return AttributeExcelParseResult([], [], [f"В Excel отсутствует выбранный лист «{requested}»."])
+        resolved_sheet = requested
+    elif "Атрибуты" in workbook.sheetnames:
+        resolved_sheet = "Атрибуты"
+    elif workbook.sheetnames:
+        resolved_sheet = workbook.sheetnames[0]
+    else:
+        return AttributeExcelParseResult([], [], ["В Excel нет листов."])
+    sheet = workbook[resolved_sheet]
     expected = {_attribute_key(name): index for index, name in enumerate(ATTRIBUTE_EXCEL_HEADERS)}
     header_row = None
     column_map: Dict[int, int] = {}
@@ -740,7 +857,7 @@ def _parse_attribute_workbook(workbook: Any) -> AttributeExcelParseResult:
             column_map = {position: candidate.get(name, -1) for name, position in expected.items()}
             break
     if header_row is None:
-        return AttributeExcelParseResult([], [], ["Не найдена строка заголовков листа «Атрибуты»."])
+        return AttributeExcelParseResult([], [], [f"Не найдена строка заголовков листа «{resolved_sheet}»."])
 
     missing = [ATTRIBUTE_EXCEL_HEADERS[position] for position, index in column_map.items() if index < 0]
     if missing:
@@ -801,12 +918,12 @@ def _parse_attribute_workbook(workbook: Any) -> AttributeExcelParseResult:
             drafts.append(draft)
 
     if not rows:
-        errors.append("На листе «Атрибуты» нет ни одной непустой строки.")
+        errors.append(f"На листе «{resolved_sheet}» нет ни одной непустой строки.")
     return AttributeExcelParseResult(rows, drafts, errors)
 
 
-def parse_attribute_excel(source: Any) -> AttributeExcelParseResult:
-    """Parse the ``Атрибуты`` sheet without importing or using Qt.
+def parse_attribute_excel(source: Any, sheet_name: str = "") -> AttributeExcelParseResult:
+    """Parse a selected attributes sheet without importing or using Qt.
 
     ``source`` may be an ``.xlsx``/``.xlsm`` path or an openpyxl-compatible
     file-like object.  Every non-empty input row is returned in ``rows`` with
@@ -819,7 +936,7 @@ def parse_attribute_excel(source: Any) -> AttributeExcelParseResult:
     except Exception as exc:
         return AttributeExcelParseResult([], [], [f"Не удалось открыть Excel: {exc}"])
     try:
-        return _parse_attribute_workbook(workbook)
+        return _parse_attribute_workbook(workbook, sheet_name=sheet_name)
     except Exception as exc:
         return AttributeExcelParseResult([], [], [f"Не удалось разобрать Excel: {exc}"])
     finally:
@@ -863,6 +980,213 @@ def right_from_cell(value: object) -> Optional[PermissionFlags]:
     strongest = max(codes, key=lambda code: RIGHT_ORDER.index(code) if code in RIGHT_ORDER else -1)
     return PermissionFlags(strongest, dict(RIGHT_FLAGS[strongest]))
 
+
+
+
+# -----------------------------------------------------------------------------
+# Review routes / approval workflows Excel
+# -----------------------------------------------------------------------------
+REVIEW_MAIN_SHEET = "5. Маршруты согласований"
+REVIEW_SETTINGS_SHEET = "5.1 Настройка_Согласований"
+REVIEW_APPROVER_SETTINGS_SHEET = "5.2 Настройка_Согласований"
+
+
+@dataclass
+class ReviewApproverDraft:
+    stage_number: int
+    approver_number: int
+    requested_name: str
+    stage_days_period: int = 1
+    can_be_canceled_by_responsible: bool = True
+    is_blocking: bool = True
+
+
+@dataclass
+class ReviewRouteDraft:
+    excel_row: int
+    name: str
+    approvers: List[ReviewApproverDraft] = field(default_factory=list)
+    read_access_names: List[str] = field(default_factory=list)
+    create_access_names: List[str] = field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+
+    @property
+    def is_valid(self) -> bool:
+        return bool(self.name and self.approvers and not self.errors)
+
+
+@dataclass
+class ReviewRoutePlanRow:
+    draft: ReviewRouteDraft
+    status: str
+    message: str = ""
+    stage_types: List[dict] = field(default_factory=list)
+    review_accesses: List[dict] = field(default_factory=list)
+    existing_id: str = ""
+
+    @property
+    def can_create(self) -> bool:
+        return self.status == "К созданию" and self.draft.is_valid
+
+
+def _split_review_names(value: object) -> List[str]:
+    text = clean_text(value)
+    if not text:
+        return []
+    return [clean_text(part) for part in re.split(r"[;\n\r]+", text) if clean_text(part)]
+
+
+def _review_bool(value: object, default: bool = True) -> bool:
+    text = normalize_text(value)
+    if not text:
+        return bool(default)
+    if text in {"да", "yes", "true", "1", "+"}:
+        return True
+    if text in {"нет", "no", "false", "0", "-"}:
+        return False
+    raise ValueError(f"ожидалось Да/Нет, получено: {clean_text(value)!r}")
+
+
+def _review_days(value: object, default: int = 1) -> int:
+    if value is None or clean_text(value) == "":
+        return default
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError):
+        raise ValueError(f"продолжительность этапа должна быть целым числом, получено: {value!r}")
+    if number < 1:
+        raise ValueError("продолжительность этапа должна быть не меньше 1 рабочего дня")
+    return number
+
+
+def parse_review_routes_excel(
+    excel_path: str,
+    main_sheet_name: str = "",
+    settings_sheet_name: str = "",
+    approver_sheet_name: str = "",
+) -> List[ReviewRouteDraft]:
+    """Reads the three-sheet approval-route template bundled with SIGNAL.
+
+    The workbook layout intentionally matches the source template:
+      - 5. Маршруты согласований: route name + up to 7 stages / 2 approvers;
+      - 5.1 Настройка_Согласований: read/create access and stage duration;
+      - 5.2 Настройка_Согласований: cancel/required flags for each approver.
+
+    Blank boolean settings preserve SGNL defaults (True), matching the create
+    payload captured in the supplied HAR. Explicit Да/Нет overrides the default.
+    """
+    path = clean_text(excel_path)
+    if not path or not os.path.isfile(path):
+        raise RuntimeError("Excel-файл маршрутов не найден.")
+    wb = load_workbook(path, data_only=True)
+
+    def resolve_sheet(requested: str, expected: str, fallback_index: int) -> str:
+        requested = clean_text(requested)
+        if requested:
+            if requested not in wb.sheetnames:
+                raise RuntimeError(
+                    f"Выбранный лист «{requested}» не найден. Доступны: {', '.join(wb.sheetnames)}"
+                )
+            return requested
+        if expected in wb.sheetnames:
+            return expected
+        expected_norm = normalize_text(expected)
+        for candidate in wb.sheetnames:
+            if normalize_text(candidate) == expected_norm:
+                return candidate
+        if 0 <= fallback_index < len(wb.sheetnames):
+            return wb.sheetnames[fallback_index]
+        raise RuntimeError(f"Не удалось определить лист «{expected}».")
+
+    main_sheet = resolve_sheet(main_sheet_name, REVIEW_MAIN_SHEET, 0)
+    settings_sheet = resolve_sheet(settings_sheet_name, REVIEW_SETTINGS_SHEET, 1)
+    approver_sheet = resolve_sheet(approver_sheet_name, REVIEW_APPROVER_SETTINGS_SHEET, 2)
+    if len({main_sheet, settings_sheet, approver_sheet}) < 3:
+        raise RuntimeError("Для трёх блоков маршрута нужно выбрать три разных листа Excel.")
+
+    main_ws = wb[main_sheet]
+    settings_ws = wb[settings_sheet]
+    approver_ws = wb[approver_sheet]
+
+    settings_by_name: Dict[str, int] = {}
+    for row in range(4, settings_ws.max_row + 1):
+        name = clean_text(settings_ws.cell(row, 1).value)
+        if name:
+            settings_by_name[normalize_text(name)] = row
+
+    approver_settings_by_name: Dict[str, int] = {}
+    for row in range(5, approver_ws.max_row + 1):
+        name = clean_text(approver_ws.cell(row, 1).value)
+        if name:
+            approver_settings_by_name[normalize_text(name)] = row
+
+    drafts: List[ReviewRouteDraft] = []
+    seen_names: Dict[str, int] = {}
+    for row in range(4, main_ws.max_row + 1):
+        route_name = clean_text(main_ws.cell(row, 1).value)
+        if not route_name:
+            continue
+        draft = ReviewRouteDraft(excel_row=row, name=route_name)
+        norm_name = normalize_text(route_name)
+        if norm_name in seen_names:
+            draft.errors.append(f"дубликат маршрута в Excel: строка {seen_names[norm_name]}")
+        else:
+            seen_names[norm_name] = row
+
+        settings_row = settings_by_name.get(norm_name)
+        approver_settings_row = approver_settings_by_name.get(norm_name)
+        if settings_row is None:
+            draft.warnings.append(f"нет строки на листе «{settings_sheet}»: используются настройки по умолчанию")
+        if approver_settings_row is None:
+            draft.warnings.append(f"нет строки на листе «{approver_sheet}»: используются настройки по умолчанию")
+
+        if settings_row is not None:
+            draft.read_access_names = _split_review_names(settings_ws.cell(settings_row, 2).value)
+            draft.create_access_names = _split_review_names(settings_ws.cell(settings_row, 3).value)
+
+        for stage_number in range(1, 8):
+            duration = 1
+            if settings_row is not None:
+                try:
+                    duration = _review_days(settings_ws.cell(settings_row, 3 + stage_number).value, 1)
+                except ValueError as exc:
+                    draft.errors.append(f"этап {stage_number}: {exc}")
+            for approver_number in (1, 2):
+                main_col = 2 + (stage_number - 1) * 2 + (approver_number - 1)
+                requested_name = clean_text(main_ws.cell(row, main_col).value)
+                if not requested_name:
+                    continue
+                can_cancel = True
+                is_blocking = True
+                if approver_settings_row is not None:
+                    settings_col = 2 + (stage_number - 1) * 4 + (approver_number - 1) * 2
+                    try:
+                        can_cancel = _review_bool(approver_ws.cell(approver_settings_row, settings_col).value, True)
+                    except ValueError as exc:
+                        draft.errors.append(f"этап {stage_number}, согласующий {approver_number}: {exc}")
+                    try:
+                        is_blocking = _review_bool(approver_ws.cell(approver_settings_row, settings_col + 1).value, True)
+                    except ValueError as exc:
+                        draft.errors.append(f"этап {stage_number}, согласующий {approver_number}: {exc}")
+                draft.approvers.append(
+                    ReviewApproverDraft(
+                        stage_number=stage_number,
+                        approver_number=approver_number,
+                        requested_name=requested_name,
+                        stage_days_period=duration,
+                        can_be_canceled_by_responsible=can_cancel,
+                        is_blocking=is_blocking,
+                    )
+                )
+
+        if not draft.approvers:
+            draft.errors.append("не указан ни один согласующий")
+        drafts.append(draft)
+
+    if not drafts:
+        raise RuntimeError(f"На листе «{main_sheet}» не найдено ни одного маршрута.")
+    return drafts
 
 class PermissionExcelParser:
     def __init__(self, excel_path: str, sheet_name: str = ""):
@@ -1506,6 +1830,104 @@ class SgnlClient:
         if not isinstance(data, list):
             raise RuntimeError(f"Ожидался список ролей проекта, получено: {type(data).__name__}")
         return data
+
+    def get_project_users(self, project_id: str) -> List[dict]:
+        project_id = clean_text(project_id)
+        response = self._request_with_cookie_fallback(
+            "POST",
+            f"{self.hub_url}/api/v1/hub/projects/{project_id}/users",
+            "Не удалось загрузить пользователей проекта",
+            json={},
+        )
+        self._raise_for_response(response, "Не удалось загрузить пользователей проекта")
+        data = response.json()
+        if not isinstance(data, list):
+            raise RuntimeError(f"Ожидался список пользователей проекта, получено: {type(data).__name__}")
+        return data
+
+    def review_headers(self, project_id: str, active_id: str = "") -> Dict[str, str]:
+        headers = self.docs_api_headers(include_auth=True)
+        project_id = clean_text(project_id)
+        active_id = clean_text(active_id)
+        referer = f"{self.docs_url}/projects/{project_id}/settings/reviews"
+        if active_id:
+            referer += f"?activeId={active_id}"
+        headers["Referer"] = referer
+        return headers
+
+    def get_review_type_names(self, project_id: str) -> List[dict]:
+        project_id = clean_text(project_id)
+        response = self._request(
+            "POST",
+            f"{self.docs_url}/api/reviews/types/names",
+            headers=self.review_headers(project_id),
+            json={"projectId": project_id, "deleted": False},
+        )
+        self._raise_for_response(response, "Не удалось загрузить маршруты согласований")
+        data = response.json()
+        if not isinstance(data, list):
+            raise RuntimeError(f"Ожидался список маршрутов, получено: {type(data).__name__}")
+        return data
+
+    def create_review_type(self, project_id: str, name: str, stage_types: Sequence[dict]) -> str:
+        project_id = clean_text(project_id)
+        name = clean_text(name)
+        if not project_id or not name:
+            raise RuntimeError("Для создания маршрута нужны Project ID и название.")
+        if not stage_types:
+            raise RuntimeError(f"Маршрут «{name}» не содержит этапов.")
+        payload = {
+            "projectId": project_id,
+            "name": name,
+            "description": "",
+            "version": {
+                "stamping": {"askStamping": False},
+                "signing": {"signingTypes": []},
+                "copying": None,
+                "canBeCanceledByInitiator": True,
+                "creatorsCanCancel": False,
+                "observers": [],
+                "stageTypes": list(stage_types),
+                "statusTypes": [
+                    {"iconType": "CheckMark", "name": "Утверждено", "typeInfo": "Approved", "order": 1},
+                    {"iconType": "ExclamationMark", "name": "Согласовано с замечаниями", "typeInfo": "Approved", "order": 2},
+                    {"iconType": "Cross", "name": "Отклонено", "typeInfo": "Rejected", "order": 3},
+                ],
+                "notifications": [],
+                "supersededItemsCancellingMoment": "OnStart",
+            },
+        }
+        response = self._request(
+            "POST",
+            f"{self.docs_url}/api/reviews/types/create",
+            headers=self.review_headers(project_id),
+            json=payload,
+        )
+        self._raise_for_response(response, f"Не удалось создать маршрут «{name}»")
+        data = response.json() if response.content else {}
+        review_id = clean_text(data.get("data") if isinstance(data, dict) else "")
+        if not review_id:
+            raise RuntimeError(f"SGNL создал маршрут «{name}», но не вернул его ID: {data}")
+        return review_id
+
+    def set_review_accesses(self, project_id: str, review_type_id: str, accesses: Sequence[dict]) -> None:
+        project_id = clean_text(project_id)
+        review_type_id = clean_text(review_type_id)
+        accesses = list(accesses)
+        if not accesses:
+            return
+        response = self._request(
+            "POST",
+            f"{self.docs_url}/api/reviews/accesses/set",
+            headers=self.review_headers(project_id, review_type_id),
+            json={
+                "reviewTypesIds": [review_type_id],
+                "reviewAccesses": accesses,
+                "removeOtherAccesses": False,
+                "projectId": project_id,
+            },
+        )
+        self._raise_for_response(response, "Не удалось назначить доступы маршрута согласования")
 
     def get_project_info(self, project_id: str) -> dict:
         response = self._request(
@@ -2815,6 +3237,193 @@ class CreateAttributeTypesWorker(QtCore.QObject):
             self.failed.emit(traceback.format_exc())
 
 
+
+class PreviewReviewRoutesWorker(QtCore.QObject):
+    log = Signal(str)
+    done = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, docs_url: str, hub_url: str, token: str, project_id: str, company_id: str,
+                 excel_path: str, main_sheet_name: str = "", settings_sheet_name: str = "",
+                 approver_sheet_name: str = "", cookies: Optional[Dict[str, str]] = None):
+        super().__init__()
+        self.docs_url = docs_url
+        self.hub_url = hub_url
+        self.token = token
+        self.project_id = project_id
+        self.company_id = company_id
+        self.excel_path = excel_path
+        self.main_sheet_name = clean_text(main_sheet_name)
+        self.settings_sheet_name = clean_text(settings_sheet_name)
+        self.approver_sheet_name = clean_text(approver_sheet_name)
+        self.cookies = cookies or {}
+
+    @Slot()
+    def run(self):
+        try:
+            drafts = parse_review_routes_excel(
+                self.excel_path,
+                main_sheet_name=self.main_sheet_name,
+                settings_sheet_name=self.settings_sheet_name,
+                approver_sheet_name=self.approver_sheet_name,
+            )
+            client = SgnlClient(self.docs_url, self.hub_url, self.token, cookies=self.cookies)
+            self.log.emit(f"Маршруты согласований: прочитано из Excel {len(drafts)}\n")
+
+            roles: List[dict] = []
+            try:
+                roles.extend(client.get_custom_roles(self.company_id))
+            except Exception as exc:
+                self.log.emit(f"WARNING: роли компании не загружены: {exc}\n")
+            try:
+                project_roles = client.get_project_roles(self.project_id)
+                known = {clean_text(x.get('id') or x.get('roleId')) for x in roles}
+                for role in project_roles:
+                    rid = clean_text(role.get('id') or role.get('roleId'))
+                    if rid and rid not in known:
+                        roles.append(role)
+                        known.add(rid)
+            except Exception as exc:
+                self.log.emit(f"WARNING: роли проекта не загружены: {exc}\n")
+
+            try:
+                users = client.get_project_users(self.project_id)
+            except Exception as exc:
+                self.log.emit(f"WARNING: пользователи проекта не загружены: {exc}\n")
+                users = client.get_company_users(self.company_id)
+            resolver = PrincipalResolver(roles, users)
+
+            existing = client.get_review_type_names(self.project_id)
+            existing_by_name = {
+                normalize_text(item.get("name")): clean_text(item.get("id"))
+                for item in existing if clean_text(item.get("name"))
+            }
+
+            plans: List[ReviewRoutePlanRow] = []
+            for draft in drafts:
+                errors = list(draft.errors)
+                stage_types: List[dict] = []
+                previous_stage = None
+                order = 0
+                for approver in draft.approvers:
+                    resolution = resolver.resolve(approver.requested_name)
+                    if not resolution.ok or resolution.principal is None:
+                        errors.append(
+                            f"этап {approver.stage_number}, согласующий {approver.approver_number} «{approver.requested_name}»: "
+                            + (resolution.message or "не найден")
+                        )
+                        continue
+                    order += 1
+                    if order == 1:
+                        order_type = None
+                    elif previous_stage == approver.stage_number:
+                        order_type = "Parallel"
+                    else:
+                        order_type = "Sequential"
+                    principal = resolution.principal
+                    stage_types.append({
+                        "isBlocking": bool(approver.is_blocking),
+                        "order": order,
+                        "stageDaysPeriod": int(approver.stage_days_period),
+                        "responsible": {"id": principal.id, "type": principal.source_type},
+                        "orderType": order_type,
+                        "canBeCanceledByResponsible": bool(approver.can_be_canceled_by_responsible),
+                        "enableOverridingStageDaysPeriod": False,
+                        "itemsUpdatable": False,
+                    })
+                    previous_stage = approver.stage_number
+
+                # Review access API accepts roles. One effective access per role;
+                # Create is kept when the same role also appears in the Read column.
+                access_by_role: Dict[str, dict] = {}
+                for access_type, names in (("Read", draft.read_access_names), ("Create", draft.create_access_names)):
+                    for requested_name in names:
+                        resolution = resolver.resolve(requested_name)
+                        if not resolution.ok or resolution.principal is None:
+                            errors.append(f"доступ {access_type} «{requested_name}»: {resolution.message or 'роль не найдена'}")
+                            continue
+                        principal = resolution.principal
+                        if principal.source_type != "Role":
+                            errors.append(f"доступ {access_type} «{requested_name}»: доступ маршрута назначается роли, найден пользователь")
+                            continue
+                        current = access_by_role.get(principal.id)
+                        if current is None or access_type == "Create":
+                            access_by_role[principal.id] = {"roleId": principal.id, "accessType": access_type}
+                review_accesses = list(access_by_role.values())
+
+                existing_id = existing_by_name.get(normalize_text(draft.name), "")
+                if errors:
+                    status = "Ошибка"
+                elif existing_id:
+                    status = "Уже существует"
+                else:
+                    status = "К созданию"
+                parts = []
+                if errors:
+                    parts.append("; ".join(errors))
+                if draft.warnings:
+                    parts.append("; ".join(draft.warnings))
+                if not parts and status == "Уже существует":
+                    parts.append("Маршрут с таким именем уже есть в SGNL; повторное создание пропущено.")
+                plans.append(ReviewRoutePlanRow(
+                    draft=draft,
+                    status=status,
+                    message=" ".join(parts),
+                    stage_types=stage_types,
+                    review_accesses=review_accesses,
+                    existing_id=existing_id,
+                ))
+
+            self.done.emit({"plans": plans, "existing_count": len(existing)})
+        except Exception:
+            self.failed.emit(traceback.format_exc())
+
+
+class CreateReviewRoutesWorker(QtCore.QObject):
+    log = Signal(str)
+    done = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, docs_url: str, hub_url: str, token: str, project_id: str,
+                 plans: Sequence[ReviewRoutePlanRow], cookies: Optional[Dict[str, str]] = None):
+        super().__init__()
+        self.docs_url = docs_url
+        self.hub_url = hub_url
+        self.token = token
+        self.project_id = project_id
+        self.plans = list(plans)
+        self.cookies = cookies or {}
+
+    @Slot()
+    def run(self):
+        try:
+            client = SgnlClient(self.docs_url, self.hub_url, self.token, cookies=self.cookies)
+            current = client.get_review_type_names(self.project_id)
+            existing_names = {normalize_text(x.get("name")) for x in current if clean_text(x.get("name"))}
+            stats = {"created": 0, "skipped": 0, "failed": 0, "errors": []}
+            candidates = [plan for plan in self.plans if plan.can_create]
+            for index, plan in enumerate(candidates, 1):
+                name = plan.draft.name
+                if normalize_text(name) in existing_names:
+                    stats["skipped"] += 1
+                    self.log.emit(f"[{index}/{len(candidates)}] SKIP: «{name}» уже существует\n")
+                    continue
+                try:
+                    review_id = client.create_review_type(self.project_id, name, plan.stage_types)
+                    if plan.review_accesses:
+                        client.set_review_accesses(self.project_id, review_id, plan.review_accesses)
+                    existing_names.add(normalize_text(name))
+                    stats["created"] += 1
+                    self.log.emit(f"[{index}/{len(candidates)}] OK: «{name}» — {review_id}\n")
+                except Exception as exc:
+                    stats["failed"] += 1
+                    stats["errors"].append(f"{name}: {exc}")
+                    self.log.emit(f"[{index}/{len(candidates)}] ERROR: «{name}» — {exc}\n")
+            self.done.emit(stats)
+        except Exception:
+            self.failed.emit(traceback.format_exc())
+
+
 # -----------------------------------------------------------------------------
 # UI
 # -----------------------------------------------------------------------------
@@ -2913,6 +3522,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.attribute_preview_verified = False
         self.attribute_preview_fingerprint = ""
         self.attribute_preview_project_id = ""
+        self.review_excel_path = ""
+        self.review_plans: List[ReviewRoutePlanRow] = []
+        self.review_preview_project_id = ""
         self._busy = False
         self._attribute_auto_loaded_project = ""
         self.active_threads: List[QtCore.QThread] = []
@@ -2963,6 +3575,53 @@ class MainWindow(QtWidgets.QMainWindow):
             row.addWidget(status, 0, QtCore.Qt.AlignVCenter)
         layout.addLayout(row)
 
+    def _make_file_row(self, title: str, subtitle: str, download_button: QtWidgets.QPushButton,
+                       upload_button: QtWidgets.QPushButton) -> QtWidgets.QWidget:
+        row_widget = QtWidgets.QWidget()
+        row_widget.setObjectName("fileRowLast")
+        row = QtWidgets.QHBoxLayout(row_widget)
+        row.setContentsMargins(0, 7, 0, 7)
+        row.setSpacing(10)
+
+        badge = QtWidgets.QLabel()
+        badge.setObjectName("iconBadge")
+        badge.setProperty("tone", "info")
+        badge.setAlignment(QtCore.Qt.AlignCenter)
+        badge.setFixedSize(32, 32)
+        badge.setProperty("iconAsset", "Excel.png")
+        badge.setProperty("iconSize", 18)
+        badge.setPixmap(themed_icon(self.asset_dir, "Excel.png", self.is_dark_theme).pixmap(QtCore.QSize(18, 18)))
+        row.addWidget(badge)
+
+        text_col = QtWidgets.QVBoxLayout()
+        text_col.setContentsMargins(0, 0, 0, 0)
+        text_col.setSpacing(1)
+        title_label = QtWidgets.QLabel(title)
+        title_label.setObjectName("rowTitle")
+        subtitle_label = QtWidgets.QLabel(subtitle)
+        subtitle_label.setObjectName("rowSubtitle")
+        subtitle_label.setWordWrap(True)
+        text_col.addWidget(title_label)
+        text_col.addWidget(subtitle_label)
+        row.addLayout(text_col, 1)
+
+        download_button.setObjectName("downloadButton")
+        download_button.setMinimumWidth(150)
+        download_button.setFixedHeight(34)
+        upload_button.setObjectName("uploadButton")
+        upload_button.setMinimumWidth(150)
+        upload_button.setFixedHeight(34)
+        row.addWidget(download_button)
+        row.addWidget(upload_button)
+        return row_widget
+
+    def _make_status_chip(self, text: str, tone: str = "neutral") -> QtWidgets.QLabel:
+        chip = QtWidgets.QLabel(text)
+        chip.setObjectName("statusChip")
+        chip.setProperty("tone", tone)
+        chip.setAlignment(QtCore.Qt.AlignCenter)
+        return chip
+
     def _set_button_icon(self, button: QtWidgets.QAbstractButton, file_name: str, size: int = 16):
         if button is None:
             return
@@ -2979,6 +3638,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("btn_load_sheets", "free-icon-refresh-5234214.png"),
             ("btn_log", "information.png"),
             ("btn_permissions_template", "Excel.png"),
+            ("btn_context_template", "free-icon-download-126488.png"),
             ("btn_preview", "preview.png"),
             ("btn_apply", "krug_galka.png"),
             ("btn_folder_log", "information.png"),
@@ -2987,12 +3647,17 @@ class MainWindow(QtWidgets.QMainWindow):
             ("btn_folder_preview", "preview.png"),
             ("btn_folder_create", "folder_icon_variant_1.png"),
             ("btn_attr_log", "information.png"),
-            ("btn_attr_template", "Excel.png"),
+            ("btn_attr_template", "free-icon-download-126488.png"),
             ("btn_attr_load_excel", "upload.png"),
             ("btn_attr_preview", "preview.png"),
             ("btn_attr_details", "information.png"),
             ("btn_attr_refresh", "free-icon-refresh-5234214.png"),
             ("btn_attr_create", "krug_galka.png"),
+            ("btn_review_log", "information.png"),
+            ("btn_review_template", "free-icon-download-126488.png"),
+            ("btn_review_load_excel", "upload.png"),
+            ("btn_review_preview", "preview.png"),
+            ("btn_review_create", "krug_galka.png"),
             ("btn_auth_cancel", "arrow-left.png"),
             ("btn_service_toggle", "links.png"),
         ]
@@ -3051,6 +3716,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._fill_plan_table(self.current_plan)
         if self.current_folder_plan:
             self._fill_folder_table(self.current_folder_plan)
+        if self.review_plans:
+            self._fill_review_table(self.review_plans)
 
     def _toggle_password_visibility(self):
         if self.ed_password.echoMode() == QtWidgets.QLineEdit.Password:
@@ -3095,7 +3762,7 @@ class MainWindow(QtWidgets.QMainWindow):
         title_col.setSpacing(2)
         title = QtWidgets.QLabel("SIGNAL Docs")
         title.setObjectName("pageTitle")
-        subtitle = QtWidgets.QLabel("Структура проекта, ролевая матрица и пользовательские атрибуты")
+        subtitle = QtWidgets.QLabel("Структура проекта, права, атрибуты и маршруты согласований")
         subtitle.setObjectName("pageSubtitle")
         title_col.addWidget(title)
         title_col.addWidget(subtitle)
@@ -3232,40 +3899,60 @@ class MainWindow(QtWidgets.QMainWindow):
         self.module_tabs.addTab("Ролевая матрица")
         self.module_tabs.addTab("Папочная структура")
         self.module_tabs.addTab("Атрибуты")
+        self.module_tabs.addTab("Маршруты согласований")
         root.addWidget(self.module_tabs)
 
-        # Excel общий для ролевой матрицы и папочной структуры. На вкладке атрибутов он скрывается.
+        # Excel-карточка для ролевой матрицы и папочной структуры.
+        # По композиции повторяет Larix: сначала файл, затем выбор листа/легенда.
         excel_card = QtWidgets.QFrame()
         self.excel_card = excel_card
         excel_card.setObjectName("card")
         excel_layout = QtWidgets.QVBoxLayout(excel_card)
-        excel_layout.setContentsMargins(14, 11, 14, 13)
-        excel_layout.setSpacing(9)
-        self._add_card_header(excel_layout, "Excel и параметры", "Excel.png")
-        excel_grid = QtWidgets.QGridLayout()
-        excel_grid.setHorizontalSpacing(10)
-        excel_grid.setVerticalSpacing(6)
-        self.ed_excel = QtWidgets.QLineEdit()
-        self.ed_excel.setPlaceholderText("Выберите Excel-файл с папочной структурой и ролевой матрицей")
-        self.ed_excel.setReadOnly(True)
+        excel_layout.setContentsMargins(14, 11, 14, 9)
+        excel_layout.setSpacing(6)
+
+        self.btn_context_template = QtWidgets.QPushButton("Скачать шаблон")
         self.btn_excel = QtWidgets.QPushButton("Загрузить файл")
-        self.btn_excel.setObjectName("secondaryAction")
+        self.ed_excel = QtWidgets.QLineEdit()
+        self.ed_excel.setPlaceholderText("Excel-файл не выбран")
+        self.ed_excel.setReadOnly(True)
+
+        self._shared_excel_title = "Excel-файл ролевой матрицы"
+        self._shared_excel_subtitle = "Права папок и проектных ролей из Excel."
+        self.shared_excel_row = self._make_file_row(
+            self._shared_excel_title, self._shared_excel_subtitle,
+            self.btn_context_template, self.btn_excel,
+        )
+        excel_layout.addWidget(self.shared_excel_row)
+
+        path_row = QtWidgets.QHBoxLayout()
+        path_row.setSpacing(8)
+        self.lbl_shared_excel_path = QtWidgets.QLabel("Загруженный файл")
+        self.lbl_shared_excel_path.setObjectName("fieldLabel")
+        path_col = QtWidgets.QVBoxLayout()
+        path_col.setSpacing(4)
+        path_col.addWidget(self.lbl_shared_excel_path)
+        path_col.addWidget(self.ed_excel)
+        path_row.addLayout(path_col, 1)
+
         self.cmb_sheet = QtWidgets.QComboBox()
         self.cmb_sheet.setPlaceholderText("Сначала выберите Excel-файл")
         self.cmb_sheet.setEnabled(False)
         self.btn_load_sheets = QtWidgets.QPushButton("Обновить листы")
         self.btn_load_sheets.setObjectName("secondaryAction")
-        excel_grid.addWidget(self._field_label("Excel-файл"), 0, 0)
-        excel_grid.addWidget(self.ed_excel, 1, 0, 1, 2)
-        excel_grid.addWidget(self.btn_excel, 1, 2)
-        excel_grid.addWidget(self._field_label("Лист Excel"), 2, 0)
-        excel_grid.addWidget(self.cmb_sheet, 3, 0, 1, 2)
-        excel_grid.addWidget(self.btn_load_sheets, 3, 2)
-        excel_grid.setColumnStretch(0, 1)
-        excel_grid.setColumnStretch(1, 1)
-        excel_layout.addLayout(excel_grid)
+        sheet_col = QtWidgets.QVBoxLayout()
+        sheet_col.setSpacing(4)
+        sheet_col.addWidget(self._field_label("Лист Excel"))
+        sheet_box = QtWidgets.QHBoxLayout()
+        sheet_box.setSpacing(8)
+        sheet_box.addWidget(self.cmb_sheet, 1)
+        sheet_box.addWidget(self.btn_load_sheets)
+        sheet_col.addLayout(sheet_box)
+        path_row.addLayout(sheet_col, 1)
+        excel_layout.addLayout(path_row)
 
         rights_box = QtWidgets.QFrame()
+        self.rights_box = rights_box
         rights_box.setObjectName("rightsLegendBox")
         rights_layout = QtWidgets.QHBoxLayout(rights_box)
         rights_layout.setContentsMargins(10, 7, 10, 7)
@@ -3302,6 +3989,7 @@ class MainWindow(QtWidgets.QMainWindow):
         permissions_layout = QtWidgets.QVBoxLayout(permissions_tab)
         permissions_layout.setContentsMargins(2, 12, 2, 2)
         permissions_layout.setSpacing(12)
+        permissions_layout.setAlignment(QtCore.Qt.AlignTop)
 
         permissions_card = QtWidgets.QFrame()
         permissions_card.setObjectName("card")
@@ -3349,7 +4037,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_log = QtWidgets.QPushButton("Открыть лог")
         self.btn_log.setObjectName("logButton")
         self.btn_permissions_template = QtWidgets.QPushButton("Скачать шаблон Excel")
-        self.btn_permissions_template.setObjectName("downloadButton")
+        self.btn_permissions_template.hide()
         self.btn_permissions_details = make_details_button()
         self.btn_permissions_details.setEnabled(False)
         self.btn_permissions_details.clicked.connect(
@@ -3364,13 +4052,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_apply.setObjectName("orangeAction")
         self.btn_apply.setToolTip("Если предпросмотр ещё не построен, программа сначала выполнит проверку автоматически.")
         permissions_footer.addWidget(self.btn_log)
-        permissions_footer.addWidget(self.btn_permissions_template)
         permissions_footer.addStretch(1)
         permissions_footer.addWidget(self.btn_permissions_details)
         permissions_footer.addWidget(self.btn_preview)
         permissions_footer.addWidget(self.btn_apply)
         permissions_card_layout.addLayout(permissions_footer)
-        permissions_layout.addWidget(permissions_card, 0, QtCore.Qt.AlignTop)
+        permissions_layout.addWidget(permissions_card)
         self.tabs.addTab(permissions_tab, "Ролевая матрица")
 
         folders_tab = QtWidgets.QWidget()
@@ -3378,6 +4065,7 @@ class MainWindow(QtWidgets.QMainWindow):
         folders_layout = QtWidgets.QVBoxLayout(folders_tab)
         folders_layout.setContentsMargins(2, 12, 2, 2)
         folders_layout.setSpacing(12)
+        folders_layout.setAlignment(QtCore.Qt.AlignTop)
 
         folders_card = QtWidgets.QFrame()
         folders_card.setObjectName("card")
@@ -3424,7 +4112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_folder_log = QtWidgets.QPushButton("Открыть лог")
         self.btn_folder_log.setObjectName("logButton")
         self.btn_folder_template = QtWidgets.QPushButton("Скачать шаблон Excel")
-        self.btn_folder_template.setObjectName("downloadButton")
+        self.btn_folder_template.hide()
         self.btn_folder_load_excel = QtWidgets.QPushButton("Загрузить из Excel")
         self.btn_folder_load_excel.setObjectName("downloadButton")
         self.btn_folder_details = make_details_button()
@@ -3440,22 +4128,59 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_folder_create = QtWidgets.QPushButton("Создать папки")
         self.btn_folder_create.setObjectName("orangeAction")
         folders_footer.addWidget(self.btn_folder_log)
-        folders_footer.addWidget(self.btn_folder_template)
         folders_footer.addStretch(1)
         folders_footer.addWidget(self.btn_folder_details)
         folders_footer.addWidget(self.btn_folder_load_excel)
         folders_footer.addWidget(self.btn_folder_preview)
         folders_footer.addWidget(self.btn_folder_create)
         folders_card_layout.addLayout(folders_footer)
-        folders_layout.addWidget(folders_card, 0, QtCore.Qt.AlignTop)
+        folders_layout.addWidget(folders_card)
         self.tabs.addTab(folders_tab, "Папочная структура")
 
-        # Атрибуты проекта — отдельный раздел, использующий ту же авторизацию и выбранный проект.
+        # Атрибуты проекта — тот же поток Larix: Excel-карточка -> предпросмотр/создание.
         attributes_tab = QtWidgets.QWidget()
         attributes_tab.setObjectName("tabPage")
         attributes_layout = QtWidgets.QVBoxLayout(attributes_tab)
         attributes_layout.setContentsMargins(2, 12, 2, 2)
         attributes_layout.setSpacing(12)
+        attributes_layout.setAlignment(QtCore.Qt.AlignTop)
+
+        attr_file_card = QtWidgets.QFrame()
+        attr_file_card.setObjectName("card")
+        attr_file_card.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
+        attr_file_layout = QtWidgets.QVBoxLayout(attr_file_card)
+        attr_file_layout.setContentsMargins(14, 11, 14, 9)
+        attr_file_layout.setSpacing(6)
+        self.btn_attr_template = QtWidgets.QPushButton("Скачать шаблон")
+        self.btn_attr_load_excel = QtWidgets.QPushButton("Загрузить файл")
+        attr_file_layout.addWidget(self._make_file_row(
+            "Excel-файл атрибутов",
+            "Заполните лист «Атрибуты», затем загрузите файл и выполните предпросмотр.",
+            self.btn_attr_template, self.btn_attr_load_excel,
+        ))
+        attr_path_row = QtWidgets.QHBoxLayout()
+        attr_path_row.setSpacing(8)
+
+        attr_file_col = QtWidgets.QVBoxLayout()
+        attr_file_col.setSpacing(4)
+        attr_file_col.addWidget(self._field_label("Загруженный файл"))
+        self.lbl_attr_file = QtWidgets.QLineEdit()
+        self.lbl_attr_file.setReadOnly(True)
+        self.lbl_attr_file.setPlaceholderText("Excel-файл не выбран")
+        attr_file_col.addWidget(self.lbl_attr_file)
+        attr_path_row.addLayout(attr_file_col, 1)
+
+        attr_sheet_col = QtWidgets.QVBoxLayout()
+        attr_sheet_col.setSpacing(4)
+        attr_sheet_col.addWidget(self._field_label("Лист Excel"))
+        self.cmb_attr_sheet = QtWidgets.QComboBox()
+        self.cmb_attr_sheet.setEnabled(False)
+        self.cmb_attr_sheet.setPlaceholderText("Выберите лист")
+        attr_sheet_col.addWidget(self.cmb_attr_sheet)
+        attr_path_row.addLayout(attr_sheet_col, 1)
+
+        attr_file_layout.addLayout(attr_path_row)
+        attributes_layout.addWidget(attr_file_card)
 
         attr_create_card = QtWidgets.QFrame()
         attr_create_card.setObjectName("card")
@@ -3463,28 +4188,22 @@ class MainWindow(QtWidgets.QMainWindow):
         attr_create_layout = QtWidgets.QVBoxLayout(attr_create_card)
         attr_create_layout.setContentsMargins(14, 12, 14, 14)
         attr_create_layout.setSpacing(10)
-        self._add_card_header(attr_create_layout, "Предпросмотр и создание атрибутов", "preview.png")
+        self._add_card_header(attr_create_layout, "Атрибуты", "preview.png")
 
         attr_banner = QtWidgets.QFrame()
         attr_banner.setObjectName("infoBanner")
-        attr_banner.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         attr_banner_layout = QtWidgets.QHBoxLayout(attr_banner)
         attr_banner_layout.setContentsMargins(10, 7, 10, 7)
         attr_banner_layout.setSpacing(8)
         attr_banner_layout.addWidget(self._make_inline_icon("information.png", 16), 0, QtCore.Qt.AlignTop)
         attr_hint = QtWidgets.QLabel(
-            "Заполните лист «Атрибуты» в актуальном шаблоне и загрузите Excel-файл. "
-            "Демонстрационные строки шаблона являются обычными данными: перед рабочим импортом замените или удалите их."
+            "Предпросмотр проверяет Excel локально и сопоставляет данные с выбранным проектом. "
+            "Демонстрационные строки шаблона перед рабочим импортом замените или удалите."
         )
         attr_hint.setObjectName("infoText")
         attr_hint.setWordWrap(True)
         attr_banner_layout.addWidget(attr_hint, 1)
         attr_create_layout.addWidget(attr_banner)
-
-        self.lbl_attr_file = QtWidgets.QLabel("Файл не выбран")
-        self.lbl_attr_file.setObjectName("muted")
-        self.lbl_attr_file.setWordWrap(True)
-        attr_create_layout.addWidget(self.lbl_attr_file)
 
         self.tbl_attribute_queue = QtWidgets.QTableWidget(0, 8)
         self.tbl_attribute_queue.setObjectName("matrixTable")
@@ -3511,10 +4230,6 @@ class MainWindow(QtWidgets.QMainWindow):
         attr_footer = QtWidgets.QHBoxLayout()
         self.btn_attr_log = QtWidgets.QPushButton("Открыть лог")
         self.btn_attr_log.setObjectName("logButton")
-        self.btn_attr_template = QtWidgets.QPushButton("Скачать шаблон Excel")
-        self.btn_attr_template.setObjectName("downloadButton")
-        self.btn_attr_load_excel = QtWidgets.QPushButton("Загрузить из Excel")
-        self.btn_attr_load_excel.setObjectName("downloadButton")
         self.btn_attr_details = make_details_button()
         self.btn_attr_details.setEnabled(False)
         self.btn_attr_preview = QtWidgets.QPushButton("Предпросмотр")
@@ -3524,10 +4239,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_attr_create.setObjectName("orangeAction")
         self.btn_attr_create.setEnabled(False)
         attr_footer.addWidget(self.btn_attr_log)
-        attr_footer.addWidget(self.btn_attr_template)
         attr_footer.addStretch(1)
         attr_footer.addWidget(self.btn_attr_details)
-        attr_footer.addWidget(self.btn_attr_load_excel)
         attr_footer.addWidget(self.btn_attr_preview)
         attr_footer.addWidget(self.btn_attr_create)
         attr_create_layout.addLayout(attr_footer)
@@ -3566,8 +4279,141 @@ class MainWindow(QtWidgets.QMainWindow):
         existing_footer.addStretch(1)
         existing_footer.addWidget(self.btn_attr_refresh)
         attr_existing_layout.addLayout(existing_footer)
-        attributes_layout.addWidget(attr_existing_card, 0, QtCore.Qt.AlignTop)
+        attributes_layout.addWidget(attr_existing_card)
         self.attributes_tab_index = self.tabs.addTab(attributes_tab, "Атрибуты")
+
+        # Маршруты согласований — композиция как в Larix: файл отдельно, действие отдельно.
+        reviews_tab = QtWidgets.QWidget()
+        reviews_tab.setObjectName("tabPage")
+        reviews_layout = QtWidgets.QVBoxLayout(reviews_tab)
+        reviews_layout.setContentsMargins(2, 12, 2, 2)
+        reviews_layout.setSpacing(12)
+        reviews_layout.setAlignment(QtCore.Qt.AlignTop)
+
+        review_file_card = QtWidgets.QFrame()
+        review_file_card.setObjectName("card")
+        review_file_card.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
+        review_file_layout = QtWidgets.QVBoxLayout(review_file_card)
+        review_file_layout.setContentsMargins(14, 11, 14, 8)
+        review_file_layout.setSpacing(6)
+        self.btn_review_template = QtWidgets.QPushButton("Скачать шаблон")
+        self.btn_review_load_excel = QtWidgets.QPushButton("Загрузить файл")
+        review_file_layout.addWidget(self._make_file_row(
+            "Excel-файл маршрутов",
+            "Маршруты, этапы, согласующие, длительности и права из трёх связанных листов шаблона.",
+            self.btn_review_template, self.btn_review_load_excel,
+        ))
+        legend = QtWidgets.QLabel(
+            "Листы: 5 — этапы · 5.1 — доступ и длительность · 5.2 — настройки согласующих"
+        )
+        legend.setObjectName("rowSubtitle")
+        legend.setWordWrap(False)
+        review_file_layout.addWidget(legend)
+        review_sheet_grid = QtWidgets.QGridLayout()
+        review_sheet_grid.setHorizontalSpacing(10)
+        review_sheet_grid.setVerticalSpacing(6)
+        self.cmb_review_main_sheet = QtWidgets.QComboBox()
+        self.cmb_review_settings_sheet = QtWidgets.QComboBox()
+        self.cmb_review_flags_sheet = QtWidgets.QComboBox()
+        for combo in (self.cmb_review_main_sheet, self.cmb_review_settings_sheet, self.cmb_review_flags_sheet):
+            combo.setEnabled(False)
+            combo.setPlaceholderText("Выберите лист")
+        review_sheet_grid.addWidget(self._field_label("Маршруты / этапы"), 0, 0)
+        review_sheet_grid.addWidget(self.cmb_review_main_sheet, 0, 1)
+        review_sheet_grid.addWidget(self._field_label("Доступ / длительность"), 1, 0)
+        review_sheet_grid.addWidget(self.cmb_review_settings_sheet, 1, 1)
+        review_sheet_grid.addWidget(self._field_label("Настройки согласующих"), 2, 0)
+        review_sheet_grid.addWidget(self.cmb_review_flags_sheet, 2, 1)
+        review_sheet_grid.setColumnStretch(1, 1)
+        review_file_layout.addLayout(review_sheet_grid)
+        reviews_layout.addWidget(review_file_card)
+
+        review_card = QtWidgets.QFrame()
+        review_card.setObjectName("card")
+        review_card.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
+        review_layout = QtWidgets.QVBoxLayout(review_card)
+        review_layout.setContentsMargins(14, 12, 14, 14)
+        review_layout.setSpacing(10)
+        self._add_card_header(review_layout, "Маршруты согласований", "preview.png")
+
+        review_grid = QtWidgets.QGridLayout()
+        review_grid.setHorizontalSpacing(12)
+        review_grid.setVerticalSpacing(6)
+        review_grid.addWidget(self._field_label("Проект"), 0, 0)
+        self.lbl_review_project = QtWidgets.QLineEdit()
+        self.lbl_review_project.setReadOnly(True)
+        self.lbl_review_project.setPlaceholderText("Проект выбирается в блоке авторизации выше")
+        review_grid.addWidget(self.lbl_review_project, 1, 0)
+        review_grid.addWidget(self._field_label("Загруженный файл"), 2, 0)
+        self.lbl_review_file = QtWidgets.QLineEdit()
+        self.lbl_review_file.setReadOnly(True)
+        self.lbl_review_file.setPlaceholderText("Excel-файл не выбран")
+        review_grid.addWidget(self.lbl_review_file, 3, 0)
+        review_layout.addLayout(review_grid)
+
+        review_banner = QtWidgets.QFrame()
+        review_banner.setObjectName("infoBanner")
+        review_banner_layout = QtWidgets.QHBoxLayout(review_banner)
+        review_banner_layout.setContentsMargins(10, 7, 10, 7)
+        review_banner_layout.setSpacing(8)
+        review_banner_layout.addWidget(self._make_inline_icon("information.png", 16), 0, QtCore.Qt.AlignTop)
+        review_hint = QtWidgets.QLabel(
+            "Безопасный режим: существующие маршруты не изменяются и не удаляются. "
+            "Создаются только новые маршруты. Если пользователь, роль или данные этапа не найдены, "
+            "создание блокируется до исправления Excel."
+        )
+        review_hint.setObjectName("infoText")
+        review_hint.setWordWrap(True)
+        review_banner_layout.addWidget(review_hint, 1)
+        review_layout.addWidget(review_banner)
+
+        review_status = QtWidgets.QHBoxLayout()
+        review_status.setSpacing(8)
+        review_status.addWidget(self._field_label("Статусы:"))
+        review_status.addWidget(self._make_status_chip("Создать", "success"))
+        review_status.addWidget(self._make_status_chip("Уже существует", "pending"))
+        review_status.addWidget(self._make_status_chip("Ошибка", "danger"))
+        review_status.addStretch(1)
+        review_layout.addLayout(review_status)
+
+        self.tbl_reviews = QtWidgets.QTableWidget(0, 6)
+        self.tbl_reviews.setObjectName("matrixTable")
+        self.tbl_reviews.setHorizontalHeaderLabels(["Статус", "Строка", "Маршрут", "Этапы", "Доступ", "Комментарий"])
+        self.tbl_reviews.verticalHeader().setVisible(False)
+        self.tbl_reviews.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tbl_reviews.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.tbl_reviews.setAlternatingRowColors(True)
+        self.tbl_reviews.setWordWrap(False)
+        configure_preview_table(self.tbl_reviews, min_height=160, max_height=250)
+        review_header = self.tbl_reviews.horizontalHeader()
+        review_header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        review_header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        review_header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        review_header.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
+        review_header.setSectionResizeMode(4, QtWidgets.QHeaderView.Stretch)
+        review_header.setSectionResizeMode(5, QtWidgets.QHeaderView.Stretch)
+        review_layout.addWidget(self.tbl_reviews)
+
+        review_footer = QtWidgets.QHBoxLayout()
+        self.btn_review_log = QtWidgets.QPushButton("Открыть лог")
+        self.btn_review_log.setObjectName("logButton")
+        self.btn_review_details = make_details_button()
+        self.btn_review_details.setEnabled(False)
+        self.btn_review_preview = QtWidgets.QPushButton("Предпросмотр")
+        self.btn_review_preview.setObjectName("secondaryAction")
+        self.btn_review_preview.setEnabled(False)
+        self.btn_review_create = QtWidgets.QPushButton("Создать маршруты")
+        self.btn_review_create.setObjectName("orangeAction")
+        self.btn_review_create.setEnabled(False)
+        review_footer.addWidget(self.btn_review_log)
+        review_footer.addStretch(1)
+        review_footer.addWidget(self.btn_review_details)
+        review_footer.addWidget(self.btn_review_preview)
+        review_footer.addWidget(self.btn_review_create)
+        review_layout.addLayout(review_footer)
+        reviews_layout.addWidget(review_card)
+        reviews_layout.addStretch(1)
+        self.reviews_tab_index = self.tabs.addTab(reviews_tab, "Маршруты согласований")
 
         self.statusBar().showMessage("Готово")
 
@@ -3582,6 +4428,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_folder_log.clicked.connect(self._show_log)
         self.btn_permissions_template.clicked.connect(lambda: self._save_excel_template("permissions"))
         self.btn_folder_template.clicked.connect(lambda: self._save_excel_template("folders"))
+        self.btn_context_template.clicked.connect(self._download_current_shared_template)
         self.btn_attr_template.clicked.connect(lambda: self._save_excel_template("attributes"))
         self.btn_preview.clicked.connect(self._preview)
         self.btn_apply.clicked.connect(self._apply_permissions)
@@ -3594,6 +4441,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_attr_preview.clicked.connect(self._preview_attributes_excel)
         self.btn_attr_details.clicked.connect(lambda: show_table_details(self, self.tbl_attribute_queue, "Атрибуты — Подробнее", "Полный результат проверки Excel."))
         self.btn_attr_create.clicked.connect(self._create_attributes)
+        self.btn_review_log.clicked.connect(self._show_log)
+        self.btn_review_template.clicked.connect(lambda: self._save_excel_template("reviews"))
+        self.btn_review_load_excel.clicked.connect(self._load_review_excel)
+        for combo in (self.cmb_review_main_sheet, self.cmb_review_settings_sheet, self.cmb_review_flags_sheet):
+            combo.currentTextChanged.connect(self._invalidate_review_sheet_selection)
+        self.cmb_attr_sheet.currentTextChanged.connect(self._invalidate_attribute_preview)
+        self.btn_review_preview.clicked.connect(self._preview_review_routes)
+        self.btn_review_details.clicked.connect(lambda: show_table_details(self, self.tbl_reviews, "Маршруты согласований — Подробнее", "Результат проверки Excel и сопоставления с SGNL."))
+        self.btn_review_create.clicked.connect(self._create_review_routes)
         self.module_tabs.currentChanged.connect(self.tabs.setCurrentIndex)
         self.tabs.currentChanged.connect(self._sync_module_selector)
         self.tabs.currentChanged.connect(self._on_workspace_tab_changed)
@@ -3602,6 +4458,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._schedule_workspace_fit()
         self.cmb_company.currentIndexChanged.connect(self._on_company_changed)
         self.cmb_project.currentIndexChanged.connect(self._on_project_changed)
+        self.cmb_project.currentTextChanged.connect(self._refresh_context_file_card)
         self.ed_excel.textChanged.connect(self._invalidate_plan)
         self.ed_project_id.textChanged.connect(self._invalidate_plan)
         self.ed_company_id.textChanged.connect(self._invalidate_plan)
@@ -3776,10 +4633,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.btn_attr_details,
             self.btn_attr_refresh,
             self.btn_attr_create,
+            self.btn_review_template,
+            self.btn_review_load_excel,
+            self.btn_review_details,
+            self.btn_review_preview,
+            self.btn_review_create,
         ]
         for widget in widgets:
             widget.setEnabled(not busy)
         self._refresh_attribute_action_states()
+        self._refresh_review_action_states()
         if message:
             self.statusBar().showMessage(message)
         if busy:
@@ -3830,6 +4693,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.btn_folder_details.setEnabled(False)
         if hasattr(self, "tbl_attribute_queue"):
             self._invalidate_attribute_preview()
+        if hasattr(self, "tbl_reviews"):
+            self.review_plans = []
+            self.review_preview_project_id = ""
+            self.tbl_reviews.setRowCount(0)
+            if hasattr(self, "btn_review_details"):
+                self.btn_review_details.setEnabled(False)
+            if hasattr(self, "btn_review_create"):
+                self.btn_review_create.setEnabled(False)
+            if hasattr(self, "btn_review_preview"):
+                self.btn_review_preview.setEnabled(bool(self.review_excel_path) and not self._busy)
 
     # ------------------------------------------------------------------
     # Data / actions
@@ -3902,6 +4775,40 @@ class MainWindow(QtWidgets.QMainWindow):
             "": "Без области",
         }.get(clean_text(value), clean_text(value) or "Без области")
 
+    def _download_current_shared_template(self) -> None:
+        index = self.tabs.currentIndex() if hasattr(self, "tabs") else 0
+        if index == 1:
+            self.btn_folder_template.click()
+        else:
+            self.btn_permissions_template.click()
+
+    def _refresh_context_file_card(self, *_args) -> None:
+        if hasattr(self, "lbl_review_project"):
+            self.lbl_review_project.setText(clean_text(self.cmb_project.currentText()))
+
+        if not hasattr(self, "shared_excel_row"):
+            return
+        index = self.tabs.currentIndex() if hasattr(self, "tabs") else 0
+        labels = self.shared_excel_row.findChildren(QtWidgets.QLabel)
+        row_titles = [label for label in labels if label.objectName() == "rowTitle"]
+        row_subtitles = [label for label in labels if label.objectName() == "rowSubtitle"]
+        if index == 1:
+            title = "Excel-файл папочной структуры"
+            subtitle = "Иерархия папок проекта из Excel. Существующие папки не создаются повторно."
+            self.lbl_rights.setVisible(False)
+            if hasattr(self, "rights_box"):
+                self.rights_box.setVisible(False)
+        else:
+            title = "Excel-файл ролевой матрицы"
+            subtitle = "Права папок и проектных ролей из Excel."
+            self.lbl_rights.setVisible(True)
+            if hasattr(self, "rights_box"):
+                self.rights_box.setVisible(True)
+        if row_titles:
+            row_titles[0].setText(title)
+        if row_subtitles:
+            row_subtitles[0].setText(subtitle)
+
     def _sync_module_selector(self, index: int):
         if hasattr(self, "module_tabs") and self.module_tabs.currentIndex() != index:
             self.module_tabs.blockSignals(True)
@@ -3910,8 +4817,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_workspace_tab_changed(self, index: int):
         is_attributes = hasattr(self, "attributes_tab_index") and index == self.attributes_tab_index
+        is_reviews = hasattr(self, "reviews_tab_index") and index == self.reviews_tab_index
         if hasattr(self, "excel_card"):
-            self.excel_card.setVisible(not is_attributes)
+            self.excel_card.setVisible(not (is_attributes or is_reviews))
+        self._refresh_context_file_card()
         if not is_attributes:
             return
         project_id = self._current_project_id()
@@ -3920,7 +4829,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._attribute_auto_loaded_project = project_id
             self._load_attribute_types(silent=True)
 
-    def _invalidate_attribute_preview(self) -> None:
+    def _invalidate_attribute_preview(self, *_args) -> None:
         self.attribute_preview_result = None
         self.attribute_preview_pending = False
         self.attribute_preview_verified = False
@@ -3942,7 +4851,8 @@ class MainWindow(QtWidgets.QMainWindow):
             and self.attribute_preview_verified
             and not self.attribute_preview_pending
         )
-        self.btn_attr_preview.setEnabled(not busy and bool(self.attribute_excel_path) and not self.attribute_preview_pending)
+        sheet_ready = bool(clean_text(self.cmb_attr_sheet.currentText())) if hasattr(self, "cmb_attr_sheet") else True
+        self.btn_attr_preview.setEnabled(not busy and bool(self.attribute_excel_path) and sheet_ready and not self.attribute_preview_pending)
         self.btn_attr_details.setEnabled(not busy and bool(result is not None and result.rows))
         self.btn_attr_create.setEnabled(
             not busy
@@ -3952,6 +4862,232 @@ class MainWindow(QtWidgets.QMainWindow):
             and bool(clean_text(self.ed_token.text()))
         )
 
+    @staticmethod
+    def _auto_excel_sheet(names: Sequence[str], expected: str, fallback_index: int = 0) -> str:
+        names = [clean_text(name) for name in names if clean_text(name)]
+        if expected in names:
+            return expected
+        expected_norm = normalize_text(expected)
+        for name in names:
+            if normalize_text(name) == expected_norm:
+                return name
+        return names[fallback_index] if 0 <= fallback_index < len(names) else (names[0] if names else "")
+
+    @staticmethod
+    def _excel_sheet_names(path: str) -> List[str]:
+        wb = load_workbook(path, read_only=True, data_only=True)
+        try:
+            return list(wb.sheetnames)
+        finally:
+            wb.close()
+
+    def _invalidate_review_sheet_selection(self, *_args) -> None:
+        self.review_plans = []
+        self.review_preview_project_id = ""
+        if hasattr(self, "tbl_reviews"):
+            self.tbl_reviews.setRowCount(0)
+        self._refresh_review_action_states()
+
+    def _refresh_review_action_states(self) -> None:
+        if not hasattr(self, "btn_review_preview"):
+            return
+        busy = bool(getattr(self, "_busy", False))
+        same_project = bool(self.review_preview_project_id and self.review_preview_project_id == self._current_project_id())
+        has_errors = any(plan.status == "Ошибка" for plan in self.review_plans)
+        can_create = same_project and not has_errors and any(plan.can_create for plan in self.review_plans)
+        sheets_ready = all(
+            clean_text(combo.currentText())
+            for combo in (self.cmb_review_main_sheet, self.cmb_review_settings_sheet, self.cmb_review_flags_sheet)
+        ) if hasattr(self, "cmb_review_main_sheet") else True
+        self.btn_review_preview.setEnabled(not busy and bool(self.review_excel_path) and sheets_ready)
+        self.btn_review_details.setEnabled(not busy and bool(self.review_plans))
+        self.btn_review_create.setEnabled(not busy and can_create)
+
+    def _load_review_excel(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Выбрать Excel с маршрутами согласований",
+            self.review_excel_path or os.getcwd(),
+            "Excel (*.xlsx)",
+        )
+        if not path:
+            return
+        self.review_excel_path = path
+        self.lbl_review_file.setText(path)
+        try:
+            names = self._excel_sheet_names(path)
+        except Exception as exc:
+            self._show_error("Ошибка чтения Excel", str(exc))
+            return
+        defaults = (
+            self._auto_excel_sheet(names, REVIEW_MAIN_SHEET, 0),
+            self._auto_excel_sheet(names, REVIEW_SETTINGS_SHEET, 1),
+            self._auto_excel_sheet(names, REVIEW_APPROVER_SETTINGS_SHEET, 2),
+        )
+        for combo, target in zip(
+            (self.cmb_review_main_sheet, self.cmb_review_settings_sheet, self.cmb_review_flags_sheet), defaults
+        ):
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItems(names)
+            combo.setEnabled(bool(names))
+            if target:
+                combo.setCurrentText(target)
+            combo.blockSignals(False)
+        self.review_plans = []
+        self.review_preview_project_id = ""
+        self.tbl_reviews.setRowCount(0)
+        self.btn_review_details.setEnabled(False)
+        self.btn_review_create.setEnabled(False)
+        self._refresh_review_action_states()
+        self._schedule_workspace_fit()
+
+    def _preview_review_routes(self) -> None:
+        if not self.review_excel_path or not os.path.isfile(self.review_excel_path):
+            QtWidgets.QMessageBox.warning(self, "Нет Excel", "Сначала выберите Excel-файл маршрутов согласований.")
+            return
+        if not self._validate_connection_fields():
+            return
+        project_id = self._current_project_id()
+        company_id = self._current_company_id()
+        if not project_id or not company_id:
+            QtWidgets.QMessageBox.warning(self, "Не выбран проект", "Выберите компанию и проект SGNL.")
+            return
+        selected_sheets = (
+            clean_text(self.cmb_review_main_sheet.currentText()),
+            clean_text(self.cmb_review_settings_sheet.currentText()),
+            clean_text(self.cmb_review_flags_sheet.currentText()),
+        )
+        if not all(selected_sheets):
+            QtWidgets.QMessageBox.warning(self, "Не выбраны листы", "Выберите все три листа Excel для маршрутов согласований.")
+            return
+        if len(set(selected_sheets)) < 3:
+            QtWidgets.QMessageBox.warning(self, "Некорректный выбор", "Для маршрутов, доступа и настроек согласующих выберите три разных листа.")
+            return
+        self._ensure_log_visible()
+        self._set_busy(True, "Проверяю маршруты согласований...")
+        worker = PreviewReviewRoutesWorker(
+            docs_url=clean_text(self.ed_docs_url.text()),
+            hub_url=clean_text(self.ed_hub_url.text()),
+            token=clean_text(self.ed_token.text()),
+            project_id=project_id,
+            company_id=company_id,
+            excel_path=self.review_excel_path,
+            main_sheet_name=selected_sheets[0],
+            settings_sheet_name=selected_sheets[1],
+            approver_sheet_name=selected_sheets[2],
+            cookies=self._session_cookies,
+        )
+        worker.log.connect(self._log)
+        worker.done.connect(self._on_review_preview_done)
+        worker.failed.connect(self._on_review_failed)
+        self._run_worker(worker)
+
+    def _on_review_preview_done(self, payload: dict) -> None:
+        self.review_plans = list(payload.get("plans") or [])
+        self.review_preview_project_id = self._current_project_id()
+        self._fill_review_table(self.review_plans)
+        create_count = sum(1 for plan in self.review_plans if plan.can_create)
+        error_count = sum(1 for plan in self.review_plans if plan.status == "Ошибка")
+        existing_count = sum(1 for plan in self.review_plans if plan.status == "Уже существует")
+        self._set_busy(False, "Проверка маршрутов завершена")
+        self.btn_review_details.setEnabled(bool(self.review_plans))
+        self.btn_review_preview.setEnabled(bool(self.review_excel_path))
+        self.btn_review_create.setEnabled(create_count > 0 and error_count == 0)
+        self._set_status_label(
+            f"Маршруты: к созданию {create_count}, уже существуют {existing_count}, ошибок {error_count}",
+            error_count == 0,
+        )
+        self._schedule_workspace_fit()
+
+    def _fill_review_table(self, plans: Sequence[ReviewRoutePlanRow]) -> None:
+        self.tbl_reviews.setRowCount(len(plans))
+        for row, plan in enumerate(plans):
+            stages: Dict[int, List[str]] = {}
+            for approver in plan.draft.approvers:
+                stages.setdefault(approver.stage_number, []).append(approver.requested_name)
+            stage_text = " · ".join(
+                f"{stage}: {', '.join(names)}" for stage, names in sorted(stages.items())
+            )
+            access_parts = []
+            if plan.draft.read_access_names:
+                access_parts.append("Просмотр: " + ", ".join(plan.draft.read_access_names))
+            if plan.draft.create_access_names:
+                access_parts.append("Создание: " + ", ".join(plan.draft.create_access_names))
+            values = [
+                plan.status,
+                str(plan.draft.excel_row),
+                plan.draft.name,
+                stage_text,
+                " · ".join(access_parts) or "—",
+                plan.message,
+            ]
+            for col, value in enumerate(values):
+                item = QtWidgets.QTableWidgetItem(value)
+                if col == 0:
+                    if plan.status == "Ошибка":
+                        item.setForeground(QtGui.QColor(STATUS_DANGER))
+                    elif plan.status in {"К созданию", "Уже существует"}:
+                        item.setForeground(QtGui.QColor(STATUS_SUCCESS))
+                self.tbl_reviews.setItem(row, col, item)
+        fit_preview_height(self.tbl_reviews, min_height=150, max_height=260)
+
+    def _create_review_routes(self) -> None:
+        project_id = self._current_project_id()
+        if not self.review_plans or self.review_preview_project_id != project_id:
+            QtWidgets.QMessageBox.warning(self, "Нужен предпросмотр", "Сначала выполните предпросмотр для текущего проекта.")
+            return
+        candidates = [plan for plan in self.review_plans if plan.can_create]
+        errors = [plan for plan in self.review_plans if plan.status == "Ошибка"]
+        if errors:
+            QtWidgets.QMessageBox.warning(self, "Есть ошибки", "Исправьте ошибки Excel/сопоставления и повторите предпросмотр.")
+            return
+        if not candidates:
+            QtWidgets.QMessageBox.information(self, "Нет изменений", "Все маршруты из Excel уже существуют в выбранном проекте.")
+            return
+        answer = QtWidgets.QMessageBox.question(
+            self,
+            "Создать маршруты согласований",
+            f"Будет создано маршрутов: {len(candidates)}. Продолжить?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return
+        self._ensure_log_visible()
+        self._set_busy(True, "Создаю маршруты согласований...")
+        worker = CreateReviewRoutesWorker(
+            docs_url=clean_text(self.ed_docs_url.text()),
+            hub_url=clean_text(self.ed_hub_url.text()),
+            token=clean_text(self.ed_token.text()),
+            project_id=project_id,
+            plans=candidates,
+            cookies=self._session_cookies,
+        )
+        worker.log.connect(self._log)
+        worker.done.connect(self._on_review_create_done)
+        worker.failed.connect(self._on_review_failed)
+        self._run_worker(worker)
+
+    def _on_review_create_done(self, stats: dict) -> None:
+        self._set_busy(False, "Маршруты обработаны")
+        created = int(stats.get("created", 0))
+        skipped = int(stats.get("skipped", 0))
+        failed = int(stats.get("failed", 0))
+        message = f"Создано: {created}\nУже существовало: {skipped}\nОшибок: {failed}"
+        if failed:
+            QtWidgets.QMessageBox.warning(self, "Создание маршрутов завершено с ошибками", message)
+        else:
+            QtWidgets.QMessageBox.information(self, "Маршруты созданы", message)
+        # Refresh against SGNL so the UI becomes idempotent immediately.
+        self._preview_review_routes()
+
+    def _on_review_failed(self, error: str) -> None:
+        self._set_busy(False, "Ошибка")
+        self.btn_review_create.setEnabled(False)
+        self._refresh_review_action_states()
+        self._show_error("Ошибка маршрутов согласований", error)
+
     def _load_attribute_excel(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Загрузить атрибуты из Excel", "", "Excel files (*.xlsx *.xlsm);;All files (*.*)"
@@ -3959,7 +5095,20 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
         self.attribute_excel_path = path
-        self.lbl_attr_file.setText(f"Выбран файл: {Path(path).name}")
+        self.lbl_attr_file.setText(path)
+        try:
+            names = self._excel_sheet_names(path)
+        except Exception as exc:
+            self._show_error("Ошибка чтения Excel", str(exc))
+            return
+        target = self._auto_excel_sheet(names, "Атрибуты", 0)
+        self.cmb_attr_sheet.blockSignals(True)
+        self.cmb_attr_sheet.clear()
+        self.cmb_attr_sheet.addItems(names)
+        self.cmb_attr_sheet.setEnabled(bool(names))
+        if target:
+            self.cmb_attr_sheet.setCurrentText(target)
+        self.cmb_attr_sheet.blockSignals(False)
         self._invalidate_attribute_preview()
         self.statusBar().showMessage("Файл атрибутов выбран. Запустите предпросмотр.")
 
@@ -3992,7 +5141,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def _preview_attributes_excel(self) -> None:
         if not self.attribute_excel_path:
             return
-        result = parse_attribute_excel(self.attribute_excel_path)
+        sheet_name = clean_text(self.cmb_attr_sheet.currentText()) if hasattr(self, "cmb_attr_sheet") else ""
+        if not sheet_name:
+            QtWidgets.QMessageBox.warning(self, "Не выбран лист", "Выберите лист Excel с атрибутами.")
+            return
+        result = parse_attribute_excel(self.attribute_excel_path, sheet_name=sheet_name)
         self.attribute_preview_result = result
         self.attribute_drafts = [dict(draft) for draft in result.drafts]
         self.attribute_preview_pending = False
@@ -4460,11 +5613,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _save_excel_template(self, template_kind: str):
         templates = {
-            "permissions": ("SGNL_Шаблон_Ролевая_матрица.xlsx", "ролевой матрицы"),
-            "folders": ("SGNL_Шаблон_Папочная_структура.xlsx", "папочной структуры"),
-            "attributes": ("SGNL_Шаблон_Атрибуты.xlsx", "атрибутов"),
+            "permissions": ("SIGNAL Docs Ролевая матрица.xlsx", "ролевой матрицы"),
+            "folders": ("SIGNAL Docs Папочная структура.xlsx", "папочной структуры"),
+            "attributes": ("SIGNAL Docs Атрибуты.xlsx", "атрибутов"),
+            "reviews": ("SIGNAL Docs Маршруты согласований.xlsx", "маршрутов согласований"),
         }
-        default_name, label = templates.get(template_kind, ("SGNL_Шаблон.xlsx", "Excel"))
+        default_name, label = templates.get(template_kind, ("SIGNAL Docs Шаблон.xlsx", "Excel"))
         documents = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.DocumentsLocation)
         default_path = os.path.join(documents or os.getcwd(), default_name)
         path, _ = QtWidgets.QFileDialog.getSaveFileName(

@@ -41,7 +41,7 @@ from larix_ui_theme import (
 )
 from shared.theme_core import shared_style_overrides, install_window_state
 from shared.ui_components import add_standard_header_controls, install_status_bar, mark_destructive_buttons, make_preview_header
-from shared.excel_style import ORANGE, DARK, LIGHT, BORDER
+from shared.excel_style import ORANGE, DARK, LIGHT, BORDER, apply_excel_style
 
 BASE_URL = "https://platform-api.larix.ru"
 REQUEST_TIMEOUT = 30
@@ -381,17 +381,17 @@ def _matrix_resolve_principal(catalog: Dict[str, List[Dict[str, Any]]], requeste
 # =====================================================================
 APP_FOLDER_NAME = "LarixUserManager"
 SETTINGS_FILE_NAME = "settings.json"
-STRUCTURE_TEMPLATE_NAME = "Типовая папочная структура.xlsx"
-USER_IMPORT_TEMPLATE_NAME = "Шаблон_импорт пользователей3.xlsx"
-ROLE_MATRIX_TEMPLATE_NAME = "Шаблон_ролевая_модель_Larix.xlsx"
+STRUCTURE_TEMPLATE_NAME = "Larix Platform Папки и проект.xlsx"
+USER_IMPORT_TEMPLATE_NAME = "Larix Platform Импорт пользователей.xlsx"
+ROLE_MATRIX_TEMPLATE_NAME = "Larix Platform Ролевая матрица.xlsx"
 STRUCTURE_SHEET_NAME = "1. Папочная структура"
 
 # SHA-256 исходных файлов используется для проверки целостности после декодирования.
 STRUCTURE_TEMPLATE_SHA256 = "56214f2e595a15a30a0cc10a9978c5c8c2e528e8ced81c18306645bce36266b3"
 USER_IMPORT_TEMPLATE_SHA256 = "b66715ba8fb602d48d5fb6a4c1d4bd8c517fc21a4c6b2ca8ca2f9a48a971bb09"
 ROLE_MATRIX_TEMPLATE_SHA256 = "f16cc10b32fa5cc30ddd5f929caf91ab9d2a557e6dea61bc3a0d52656ebc64c2"
-REMARK_TYPE_TEMPLATE_NAME = "Шаблон типов замечаний.xlsx"
-TASK_TYPE_TEMPLATE_NAME = "Шаблон типов задач.xlsx"
+REMARK_TYPE_TEMPLATE_NAME = "Larix Platform Типы замечаний.xlsx"
+TASK_TYPE_TEMPLATE_NAME = "Larix Platform Типы задач.xlsx"
 REMARK_TYPE_TEMPLATE_SHA256 = "bc53ced4e2c0cc2875b519312409e5c7f7ce33e69ad9a75d625a3a27856c7a5d"
 TASK_TYPE_TEMPLATE_SHA256 = "4d2ab55c2eb4c39645d85a2e6c64ae3efa2b5cf220945b4d3abfc552db09740e"
 REMARK_TYPE_TEMPLATE_B64 = (
@@ -1340,39 +1340,8 @@ def _write_embedded_template(
 
 
 def _style_download_workbook(workbook, template_name: str) -> None:
-    """Style known template regions while leaving workbook structure untouched."""
-    thin = Side(style="thin", color="FFD9D9D9")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    orange = PatternFill("solid", fgColor=ORANGE)
-    dark = PatternFill("solid", fgColor=DARK)
-    light = PatternFill("solid", fgColor=LIGHT)
-
-    def cells(sheet, ref, fill, size=10, color="FFFFFF"):
-        ws = workbook[sheet] if isinstance(sheet, str) else sheet
-        for row in ws[ref]:
-            for cell in row:
-                if cell.value is None:
-                    continue
-                cell.fill = fill
-                cell.font = Font(name="Segoe UI", sz=size, bold=True, color=color)
-                cell.border = border
-                cell.alignment = Alignment(vertical="center", wrap_text=True)
-
-    lower = template_name.casefold()
-    if template_name == "role" or "ролевая" in lower:
-        ws = workbook.worksheets[0]
-        cells(ws, "A1:J1", dark, 14)
-        cells(ws, "A5:Q5", orange)
-        cells(ws, "S1:T5", light, color="666666")
-    elif template_name == "approval" or "процессы согласований" in lower:
-        for ws in workbook.worksheets:
-            last = get_column_letter(ws.max_column)
-            cells(ws, f"A1:{last}1", dark, 14)
-            if ws.max_row >= 2:
-                cells(ws, f"A2:{last}2", orange)
-    else:
-        for ws in workbook.worksheets:
-            cells(ws, f"A1:{get_column_letter(ws.max_column)}1", orange)
+    """Apply the common restrained CDE workbook style to every Larix template."""
+    apply_excel_style(workbook)
 
 
 def _embedded_template_cache_dir() -> Path:
@@ -1407,7 +1376,7 @@ def _ensure_embedded_template_cache(
 
 
 
-APPROVAL_TEMPLATE_NAME = "Шаблон_процессы согласований.xlsx"
+APPROVAL_TEMPLATE_NAME = "Larix Platform Маршруты согласований.xlsx"
 APPROVAL_TEMPLATE_SHA256 = "e24ae63ba5785ca62ea236fae21d154b2e17650cf196d5b97f4aea80cbcacb55"
 APPROVAL_TEMPLATE_B64 = "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"
 
@@ -2130,17 +2099,38 @@ def _approval_find_sheet(sheet_names: List[str], expected: str) -> Optional[str]
     return None
 
 
-def parse_approval_workflows_excel(excel_path: str) -> Dict[str, Any]:
-    """Читает три листа шаблона маршрутов и возвращает независимый план без ID Larix."""
+def parse_approval_workflows_excel(
+    excel_path: str,
+    main_sheet_name: Optional[str] = None,
+    settings_sheet_name: Optional[str] = None,
+    flags_sheet_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Читает выбранные три листа маршрутов и возвращает независимый план без ID Larix."""
     if not os.path.exists(excel_path):
         raise FileNotFoundError(f"Excel-файл не найден: {excel_path}")
     errors: List[str] = []
     try:
         book = pd.ExcelFile(excel_path)
         sheet_names = list(book.sheet_names)
-        main_sheet = _approval_find_sheet(sheet_names, APPROVAL_MAIN_SHEET)
-        settings_sheet = _approval_find_sheet(sheet_names, APPROVAL_SETTINGS_SHEET)
-        flags_sheet = _approval_find_sheet(sheet_names, APPROVAL_FLAGS_SHEET)
+
+        def resolve_manual(requested: Optional[str], expected: str, fallback_index: int) -> Optional[str]:
+            requested_text = _approval_clean_text(requested)
+            if requested_text:
+                if requested_text not in sheet_names:
+                    raise ApprovalImportValidationError([
+                        f"Выбранный лист «{requested_text}» не найден. Доступны: {', '.join(sheet_names)}"
+                    ])
+                return requested_text
+            auto = _approval_find_sheet(sheet_names, expected)
+            if auto:
+                return auto
+            if 0 <= fallback_index < len(sheet_names):
+                return sheet_names[fallback_index]
+            return None
+
+        main_sheet = resolve_manual(main_sheet_name, APPROVAL_MAIN_SHEET, 0)
+        settings_sheet = resolve_manual(settings_sheet_name, APPROVAL_SETTINGS_SHEET, 1)
+        flags_sheet = resolve_manual(flags_sheet_name, APPROVAL_FLAGS_SHEET, 2)
         missing = [
             label for label, value in (
                 (APPROVAL_MAIN_SHEET, main_sheet),
@@ -2150,8 +2140,12 @@ def parse_approval_workflows_excel(excel_path: str) -> Dict[str, Any]:
         ]
         if missing:
             raise ApprovalImportValidationError(
-                [f"Не найден обязательный лист «{name}»" for name in missing]
+                [f"Не удалось определить лист «{name}»" for name in missing]
             )
+        if len({main_sheet, settings_sheet, flags_sheet}) < 3:
+            raise ApprovalImportValidationError([
+                "Для маршрутов, доступа/длительности и настроек согласующих нужно выбрать три разных листа Excel"
+            ])
 
         main_df = pd.read_excel(book, sheet_name=main_sheet, header=None, dtype=object)
         settings_df = pd.read_excel(book, sheet_name=settings_sheet, header=None, dtype=object)
@@ -4024,16 +4018,27 @@ class ApprovalPreviewWorker(QThread):
     finished_ok = Signal(dict)
     failed = Signal(str)
 
-    def __init__(self, client: LarixAPIClient, project_id: int, excel_path: str):
+    def __init__(
+        self, client: LarixAPIClient, project_id: int, excel_path: str,
+        main_sheet_name: str = "", settings_sheet_name: str = "", flags_sheet_name: str = "",
+    ):
         super().__init__()
         self.client = client
         self.project_id = int(project_id)
         self.excel_path = excel_path
+        self.main_sheet_name = _approval_clean_text(main_sheet_name)
+        self.settings_sheet_name = _approval_clean_text(settings_sheet_name)
+        self.flags_sheet_name = _approval_clean_text(flags_sheet_name)
 
     def run(self):
         try:
             self.log.emit("Маршруты согласований: читаю Excel...")
-            parsed = parse_approval_workflows_excel(self.excel_path)
+            parsed = parse_approval_workflows_excel(
+                self.excel_path,
+                main_sheet_name=self.main_sheet_name,
+                settings_sheet_name=self.settings_sheet_name,
+                flags_sheet_name=self.flags_sheet_name,
+            )
             self.progress.emit(15)
 
             self.log.emit("Маршруты согласований: загружаю роли и пользователей проекта...")
@@ -5267,6 +5272,7 @@ class MainWindow(QtWidgets.QMainWindow):
         matrix_tab_layout = QtWidgets.QVBoxLayout(matrix_tab)
         matrix_tab_layout.setContentsMargins(2, 12, 2, 2)
         matrix_tab_layout.setSpacing(12)
+        matrix_tab_layout.setAlignment(QtCore.Qt.AlignTop)
 
         matrix_file_card = QtWidgets.QFrame()
         matrix_file_card.setObjectName("card")
@@ -5402,7 +5408,7 @@ class MainWindow(QtWidgets.QMainWindow):
         matrix_footer.addWidget(self.btn_matrix_preview)
         matrix_footer.addWidget(self.btn_matrix_apply)
         matrix_layout.addLayout(matrix_footer)
-        matrix_tab_layout.addWidget(matrix_card, 1)
+        matrix_tab_layout.addWidget(matrix_card)
         self.main_tabs.addTab(matrix_tab, "Ролевая матрица")
 
         # =============================================================
@@ -5522,6 +5528,7 @@ class MainWindow(QtWidgets.QMainWindow):
         users_layout = QtWidgets.QVBoxLayout(users_tab)
         users_layout.setContentsMargins(2, 12, 2, 2)
         users_layout.setSpacing(12)
+        users_layout.setAlignment(QtCore.Qt.AlignTop)
 
         user_file_card = QtWidgets.QFrame(); user_file_card.setObjectName("card")
         user_file_layout = QtWidgets.QVBoxLayout(user_file_card)
@@ -5577,7 +5584,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_run.setFixedHeight(38); self.btn_run.setMinimumWidth(210); self.btn_run.setEnabled(False)
         self.btn_run.clicked.connect(self._start_add_users)
         import_layout.addWidget(self.btn_run, 0, QtCore.Qt.AlignHCenter)
-        users_layout.addWidget(import_card, 1)
+        users_layout.addWidget(import_card)
         self.main_tabs.addTab(users_tab, "Импорт пользователей")
         self._setup_type_import_tab()
         self._setup_approval_tab()
@@ -5917,6 +5924,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Повторные внутренние поля делали карточки типов уже и ниже.
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(12)
+        page_layout.setAlignment(QtCore.Qt.AlignTop)
 
         # Верхняя карточка повторяет файловый блок ролевой матрицы: в ней
         # остаются только назначение шаблона, легенда и действия с Excel.
@@ -6025,7 +6033,7 @@ class MainWindow(QtWidgets.QMainWindow):
         details.clicked.connect(lambda _checked=False, k=kind: self._show_type_import_details(k))
         footer.addWidget(summary, 1); footer.addWidget(details); footer.addWidget(preview); footer.addWidget(apply_btn)
         outer.addLayout(footer)
-        page_layout.addWidget(card, 1)
+        page_layout.addWidget(card)
         state = {"kind": kind, "project": project, "sheet": sheet_combo, "file": file_edit, "table": table, "summary": summary,
                  "download": download, "upload": choose, "preview": preview, "apply": apply_btn, "details": details, "status_widgets": status_row, "path": None, "plan": None,
                  "preview_worker": None, "apply_worker": None}
@@ -6209,6 +6217,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout(tab)
         layout.setContentsMargins(2, 12, 2, 2)
         layout.setSpacing(12)
+        layout.setAlignment(QtCore.Qt.AlignTop)
 
         file_card = QtWidgets.QFrame()
         file_card.setObjectName("card")
@@ -6244,6 +6253,26 @@ class MainWindow(QtWidgets.QMainWindow):
         legend.setWordWrap(True)
         legend_layout.addWidget(legend, 1)
         file_layout.addWidget(legend_box)
+
+        sheet_grid = QtWidgets.QGridLayout()
+        sheet_grid.setHorizontalSpacing(10)
+        sheet_grid.setVerticalSpacing(6)
+        main_sheet = NoWheelComboBox()
+        settings_sheet = NoWheelComboBox()
+        flags_sheet = NoWheelComboBox()
+        for combo in (main_sheet, settings_sheet, flags_sheet):
+            combo.setPlaceholderText("Выберите лист")
+            combo.setCurrentIndex(-1)
+            combo.setEnabled(False)
+            self._setup_combo_popup(combo)
+        sheet_grid.addWidget(QtWidgets.QLabel("Маршруты / этапы", objectName="fieldLabel"), 0, 0)
+        sheet_grid.addWidget(main_sheet, 0, 1)
+        sheet_grid.addWidget(QtWidgets.QLabel("Доступ / длительность", objectName="fieldLabel"), 1, 0)
+        sheet_grid.addWidget(settings_sheet, 1, 1)
+        sheet_grid.addWidget(QtWidgets.QLabel("Настройки согласующих", objectName="fieldLabel"), 2, 0)
+        sheet_grid.addWidget(flags_sheet, 2, 1)
+        sheet_grid.setColumnStretch(1, 1)
+        file_layout.addLayout(sheet_grid)
         layout.addWidget(file_card)
 
         card = QtWidgets.QFrame()
@@ -6339,7 +6368,7 @@ class MainWindow(QtWidgets.QMainWindow):
         footer.addWidget(apply_btn)
         outer.addLayout(footer)
 
-        layout.addWidget(card, 1)
+        layout.addWidget(card)
         self.main_tabs.addTab(tab, "Маршруты согласований")
 
         self.approval_state = {
@@ -6349,6 +6378,9 @@ class MainWindow(QtWidgets.QMainWindow):
             "summary": summary,
             "download": download,
             "upload": upload,
+            "main_sheet": main_sheet,
+            "settings_sheet": settings_sheet,
+            "flags_sheet": flags_sheet,
             "preview": preview,
             "apply": apply_btn,
             "details": details,
@@ -6358,6 +6390,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "apply_worker": None,
         }
         project.currentIndexChanged.connect(self._invalidate_approval_plan)
+        for combo in (main_sheet, settings_sheet, flags_sheet):
+            combo.currentIndexChanged.connect(self._invalidate_approval_plan)
         self._approval_state_changed()
 
     def _approval_state_changed(self) -> None:
@@ -6368,7 +6402,11 @@ class MainWindow(QtWidgets.QMainWindow):
             worker is not None and worker.isRunning()
             for worker in (state.get("preview_worker"), state.get("apply_worker"))
         )
-        ready = bool(self.client.token and state["project"].currentData() and state.get("path"))
+        sheets_ready = all(
+            state.get(key) is not None and state[key].currentText().strip()
+            for key in ("main_sheet", "settings_sheet", "flags_sheet")
+        )
+        ready = bool(self.client.token and state["project"].currentData() and state.get("path") and sheets_ready)
         plan = state.get("plan") or []
         has_errors = any(row.get("action") == "error" or row.get("errors") for row in plan)
         has_creates = any(row.get("action") == "create" for row in plan)
@@ -6376,6 +6414,10 @@ class MainWindow(QtWidgets.QMainWindow):
         state["apply"].setEnabled(bool(plan) and has_creates and not has_errors and not busy)
         state["details"].setEnabled(bool(plan) and not busy)
         state["project"].setEnabled(bool(self.client.token and self.project_map) and not busy)
+        for key in ("main_sheet", "settings_sheet", "flags_sheet"):
+            combo = state.get(key)
+            if combo is not None:
+                combo.setEnabled(bool(state.get("path")) and combo.count() > 0 and not busy)
 
     def _invalidate_approval_plan(self, *_args) -> None:
         state = self.approval_state
@@ -6405,6 +6447,28 @@ class MainWindow(QtWidgets.QMainWindow):
         combo.blockSignals(False)
         self._approval_state_changed()
 
+    def _populate_approval_sheet_choices(self, path: str) -> None:
+        state = self.approval_state
+        sheets = [str(item) for item in pd.ExcelFile(path).sheet_names]
+        expected = (APPROVAL_MAIN_SHEET, APPROVAL_SETTINGS_SHEET, APPROVAL_FLAGS_SHEET)
+        fallback_indices = (0, 1, 2)
+        for key, expected_name, fallback_index in zip(
+            ("main_sheet", "settings_sheet", "flags_sheet"), expected, fallback_indices
+        ):
+            combo = state[key]
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItems(sheets)
+            target = _approval_find_sheet(sheets, expected_name)
+            if not target and 0 <= fallback_index < len(sheets):
+                target = sheets[fallback_index]
+            if target:
+                combo.setCurrentText(target)
+            else:
+                combo.setCurrentIndex(-1)
+            combo.setEnabled(bool(sheets))
+            combo.blockSignals(False)
+
     def _pick_approval_file(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
@@ -6418,8 +6482,16 @@ class MainWindow(QtWidgets.QMainWindow):
         state["path"] = path
         state["plan"] = None
         state["file"].setText(path)
+        try:
+            self._populate_approval_sheet_choices(path)
+        except Exception as exc:
+            state["path"] = None
+            state["file"].clear()
+            self._show_alert("Ошибка", f"Не удалось прочитать листы Excel:\n{exc}")
+            self._approval_state_changed()
+            return
         state["table"].setRowCount(0)
-        state["summary"].setText("Файл выбран. Нажмите «Предпросмотр» для проверки.")
+        state["summary"].setText("Файл выбран. Проверьте листы и нажмите «Предпросмотр».")
         state["upload"].setProperty("fileLoaded", True)
         state["upload"].setToolTip("Файл выбран: нажмите, чтобы заменить его")
         self._refresh_action_icons()
@@ -6447,10 +6519,26 @@ class MainWindow(QtWidgets.QMainWindow):
         if not project_id or not state.get("path"):
             self._show_alert("Предпросмотр", "Выберите проект и Excel-файл.")
             return
+        selected_sheets = (
+            state["main_sheet"].currentText().strip(),
+            state["settings_sheet"].currentText().strip(),
+            state["flags_sheet"].currentText().strip(),
+        )
+        if not all(selected_sheets):
+            self._show_alert("Предпросмотр", "Выберите все три листа Excel.")
+            return
+        if len(set(selected_sheets)) < 3:
+            self._show_alert("Предпросмотр", "Для трёх блоков маршрута выберите три разных листа Excel.")
+            return
         state["plan"] = None
         state["table"].setRowCount(0)
         state["summary"].setText("Проверяю маршруты...")
-        worker = ApprovalPreviewWorker(self.client, int(project_id), state["path"])
+        worker = ApprovalPreviewWorker(
+            self.client, int(project_id), state["path"],
+            main_sheet_name=selected_sheets[0],
+            settings_sheet_name=selected_sheets[1],
+            flags_sheet_name=selected_sheets[2],
+        )
         state["preview_worker"] = worker
         worker.log.connect(self._log)
         worker.progress.connect(self._approval_progress)

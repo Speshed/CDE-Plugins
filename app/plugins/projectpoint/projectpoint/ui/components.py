@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 from typing import Iterable, Sequence
 
 import pandas as pd
@@ -81,6 +82,62 @@ def make_file_row(
     row.addWidget(download_button)
     row.addWidget(upload_button)
     return row_widget
+
+
+def make_file_path_row(
+    file_edit: QtWidgets.QLineEdit,
+    export_button: QtWidgets.QPushButton,
+) -> QtWidgets.QWidget:
+    row_widget = QtWidgets.QWidget()
+    row = QtWidgets.QHBoxLayout(row_widget)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(8)
+    file_edit.setReadOnly(True)
+    file_edit.setPlaceholderText("Excel-файл не выбран")
+    export_button.setText("")
+    export_button.setObjectName("downloadButton")
+    export_button.setToolTip("Выгрузить текущий Excel-файл")
+    export_button.setProperty("iconAsset", "close.png")
+    export_button.setFixedSize(34, 34)
+    export_button.setEnabled(False)
+    row.addWidget(file_edit, 1)
+    row.addWidget(export_button, 0)
+    return row_widget
+
+
+def copy_selected_excel_file(parent, source_path: str, dialog_title: str = "Выгрузить Excel-файл") -> bool:
+    source = Path(str(source_path or "")).expanduser()
+    if not source_path:
+        QtWidgets.QMessageBox.warning(parent, "Выгрузка файла", "Сначала загрузите Excel-файл")
+        return False
+    if not source.exists() or not source.is_file():
+        QtWidgets.QMessageBox.warning(parent, "Выгрузка файла", f"Файл не найден:\n{source}")
+        return False
+
+    suffix = source.suffix if source.suffix.lower() in {".xls", ".xlsx"} else ".xlsx"
+    target_path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        parent,
+        dialog_title,
+        str(source.with_suffix(suffix).name),
+        "Excel (*.xlsx *.xls)",
+    )
+    if not target_path:
+        return False
+
+    target = Path(target_path)
+    if not target.suffix:
+        target = target.with_suffix(suffix)
+
+    try:
+        if target.resolve() != source.resolve():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+    except Exception as exc:
+        QtWidgets.QMessageBox.warning(parent, "Выгрузка файла", f"Не удалось выгрузить файл:\n{exc}")
+        return False
+
+    QtWidgets.QMessageBox.information(parent, "Выгрузка файла", f"Файл сохранён:\n{target}")
+    return True
 
 
 def make_info_banner(asset_dir: Path | str, dark: bool, text: str) -> QtWidgets.QFrame:
@@ -343,10 +400,12 @@ __all__ = [
     "make_inline_icon",
     "make_status_chip",
     "load_preview_sheets",
+    "make_file_path_row",
     "make_preview_table",
     "make_preview_header",
     "mark_file_button",
     "populate_inline_preview",
+    "copy_selected_excel_file",
     "read_preview_sheet",
     "run_inline_excel_preview",
     "show_excel_preview",

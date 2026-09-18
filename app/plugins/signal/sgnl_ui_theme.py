@@ -51,7 +51,7 @@ def build_qss(dark: bool, asset_dir: Union[Path, str]) -> str:
     soft_border = "#2f2f2f" if dark else "#eeeeee"
     disabled_bg = "#202020" if dark else "#f0f0f0"
     disabled_text = "#666666" if dark else "#9b9b9b"
-    field_bg = "#151515" if dark else "#FFFFFF"
+    field_bg = "#121212" if dark else "#FFFFFF"
     hover = "rgba(247, 146, 30, 0.10)"
     pressed = "rgba(247, 146, 30, 0.20)"
     popup_selected = "rgba(247, 146, 30, 0.20)"
@@ -60,6 +60,8 @@ def build_qss(dark: bool, asset_dir: Union[Path, str]) -> str:
     nav_bg = "#191919" if dark else "#F6F6F6"
     status_bg = "#171717" if dark else "#FAFAFA"
     log_bg = "#0d1117" if dark else "#111827"
+    success_bg = "rgba(60, 170, 105, 0.10)"
+    error_bg = "rgba(217, 74, 74, 0.10)"
 
     return f'''
         * {{ font-family: "Segoe UI", "Arial", sans-serif; color: {text}; font-size: 10pt; outline: none; }}
@@ -69,6 +71,7 @@ def build_qss(dark: bool, asset_dir: Union[Path, str]) -> str:
         QLabel#pageTitle {{ font-size: 18pt; font-weight: 700; color: {text}; background: transparent; }}
         QLabel#pageSubtitle {{ font-size: 9.5pt; color: {muted}; background: transparent; }}
         QLabel#cardTitle {{ font-size: 10.5pt; font-weight: 700; color: {text}; background: transparent; }}
+        QLabel#rowTitle {{ font-size: 9.5pt; font-weight: 700; background: transparent; }}
         QLabel#fieldLabel {{ font-size: 8.6pt; color: {muted}; background: transparent; }}
         QLabel#rowSubtitle, QLabel#hintLabel {{ font-size: 8.6pt; color: {muted}; background: transparent; }}
         QLabel#authStatus, QLabel#goodStatus, QLabel#badStatus {{ font-size: 8.6pt; font-weight: 600; background: transparent; }}
@@ -77,6 +80,10 @@ def build_qss(dark: bool, asset_dir: Union[Path, str]) -> str:
         QLabel#inlineIcon {{ background: transparent; border: none; }}
 
         QFrame#card {{ background: {bg}; border: 1px solid {border}; border-radius: 12px; }}
+        QWidget#fileRow, QWidget#fileRowLast {{ background: transparent; border: none; }}
+        QWidget#fileRow {{ border-bottom: 1px solid {soft_border}; }}
+        QLabel#iconBadge {{ background: transparent; color: {muted}; border: 1px solid {border}; border-radius: 8px; font-weight: 700; }}
+        QLabel#iconBadge[tone="info"], QLabel#iconBadge[tone="orange"], QLabel#iconBadge[tone="purple"], QLabel#iconBadge[tone="green"] {{ color: {ACCENT}; }}
         QFrame#servicePanel {{ background: {status_bg}; border: 1px solid {soft_border}; border-radius: 9px; }}
         QFrame#separator {{ border: none; border-top: 1px solid {soft_border}; max-height: 1px; }}
         QFrame#infoBanner {{ background: {hover}; border: 1px solid {ACCENT_HOVER}; border-radius: 8px; }}
@@ -133,13 +140,20 @@ def build_qss(dark: bool, asset_dir: Union[Path, str]) -> str:
         QPushButton#orangeAction:pressed {{ background: {pressed}; border-color: {ACCENT_PRESSED}; color: {text}; }}
         QPushButton#orangeAction:disabled {{ background: {disabled_bg}; color: {disabled_text}; border-color: {soft_border}; }}
         QPushButton#secondaryAction {{ background: {bg}; border-color: {border}; }}
-        QPushButton#downloadButton {{ background: {bg}; border-color: {border}; }}
+        QPushButton#downloadButton {{ background: {bg}; border-color: {border}; min-width: 148px; }}
+        QPushButton#uploadButton {{ background: {bg}; border-color: {border}; min-width: 148px; }}
         QPushButton#logButton {{ border: none; background: transparent; color: {muted}; padding: 4px 7px; font-weight: 500; }}
         QPushButton#logButton:hover {{ color: {text}; background: {hover}; border: none; }}
         QPushButton#serviceToggle {{ border: none; background: transparent; color: {muted}; padding: 3px 4px; font-weight: 600; text-align: left; }}
         QPushButton#serviceToggle:hover {{ color: {text}; background: transparent; border: none; }}
         QToolButton#passwordEye, QToolButton#eyeButton {{ background: transparent; border: none; border-radius: 8px; padding: 4px; }}
         QToolButton#passwordEye:hover, QToolButton#eyeButton:hover {{ background: {hover}; border: none; }}
+
+        QLabel#statusChip {{ padding: 4px 10px; border-radius: 10px; font-size: 8.4pt; font-weight: 600; }}
+        QLabel#statusChip[tone="pending"] {{ background: {hover}; border: 1px solid {ACCENT_HOVER}; color: {text}; }}
+        QLabel#statusChip[tone="success"] {{ background: {success_bg}; border: 1px solid {STATUS_SUCCESS}; color: {text}; }}
+        QLabel#statusChip[tone="danger"] {{ background: {error_bg}; border: 1px solid {STATUS_DANGER}; color: {text}; }}
+        QLabel#statusChip[tone="neutral"] {{ background: {row_alt}; border: 1px solid {border}; color: {muted}; }}
 
         QTabWidget#workspaceTabs {{ background: transparent; border: none; }}
         QTabWidget#workspaceTabs::pane {{ border: none; background: transparent; top: 10px; }}

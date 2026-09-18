@@ -203,7 +203,7 @@ class ContentTypesMixin:
     def _start_types_template(self):
         self._save_template_file(
             "Сохранить шаблон типов документов",
-            "projectpoint_content_types_template.xlsx",
+            "Project Point Типы документов.xlsx",
             write_content_types_import_template,
         )
 

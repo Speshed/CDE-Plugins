@@ -24,8 +24,8 @@ def _safe_sheet_title(title):
 def _write_simple_xlsx(filename, sheets):
     wb = Workbook()
     first = True
-    header_fill = PatternFill(start_color="D9EAF7", end_color="D9EAF7", fill_type="solid")
-    section_fill = PatternFill(start_color="EAF4EC", end_color="EAF4EC", fill_type="solid")
+    header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    section_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
     required_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
     header_font = Font(bold=True)
     title_font = Font(bold=True, size=14)
@@ -64,7 +64,7 @@ def _write_simple_xlsx(filename, sheets):
 
 def write_params_import_template(filename):
     rows = [
-        ["Шаблон создания параметров Project Point"],
+        ["Project Point — Создание параметров"],
         ["Наименование атрибута", "Внутреннее имя атрибута", "Подсказка", "Тип данных", "Значения списка"],
         ["Номер договора", "ContractNumber", "Номер договора по документу", "Короткий текст", ""],
         ["Статус проверки", "CheckStatus", "Справочное значение", "Список", "На проверке; Принято; Отклонено"],
@@ -78,7 +78,7 @@ def write_params_import_template(filename):
 
 def write_project_stages_import_template(filename):
     rows = [
-        ["Шаблон создания / обновления видов документов Project Point"],
+        ["Project Point — Виды документов"],
         ["Code", "Title", "DisplayParameters", "IsActive"],
         ["РД", "Рабочая документация", 1, True],
         ["ПД", "Проектная документация", 1, True],
@@ -98,7 +98,7 @@ def write_project_stages_import_template(filename):
 def write_content_types_import_template(filename):
     headers = ["Code", "Title", "Description", "ProjectStages", "DisplayParameters", "CustomFields"] + BOOL_FIELDS
     sample = ["DOC-GEN", "Общий документ", "Описание типа", "Рабочая документация; Проектная документация", 0, "Номер договора; Статус проверки"] + [False] * len(BOOL_FIELDS)
-    rows = [["Шаблон создания / обновления типов документов Project Point"], headers, sample]
+    rows = [["Project Point — Типы документов"], headers, sample]
     _write_simple_xlsx(
         filename,
         [("Типы документов", rows, {1: 18, 2: 34, 3: 42, 4: 24, 5: 20, 6: 42, **{i: 18 for i in range(7, 7 + len(BOOL_FIELDS))}}, {"header_row": 2, "required_cols": [1, 2], "freeze": "A3", "filter": f"A2:{get_column_letter(len(headers))}500"})]
@@ -111,7 +111,7 @@ def write_routes_import_template(filename):
     ws = wb.active
     ws.title = "Маршруты"
     rows = [
-        ["Шаблон маршрутов согласования"],
+        ["Project Point — Согласования"],
         [],
         [],
         ["Маршрут", "Проект", "Администратор", "Тип согласования", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 1", "Этап 2", "Этап 2", "Этап 2", "Этап 3", "Этап 3", "Этап 4", "Этап 4", "Этап 5", "Этап 5", "Этап 6", "Этап 6"],
@@ -121,7 +121,7 @@ def write_routes_import_template(filename):
         ws.append(row)
     ws_cond = wb.create_sheet("Условия маршрута")
     cond_rows = [
-        ["Шаблон условий маршрута"], [], [], [],
+        ["Project Point — Условия согласования"], [], [], [],
         ["Маршрут", "Вид документа", "Тип документа", "Проект", "Объект строительства", "Заказчик", "Разработчик", "Дисциплина", "Категория", "Цель выпуска"],
         ["Маршрут 1", "Все", "Все", "Все", "Все", "Все", "Все", "Все", "Все", "Все"],
     ]
@@ -129,7 +129,7 @@ def write_routes_import_template(filename):
         ws_cond.append(row)
     ws_dur = wb.create_sheet("Продолжительность")
     dur_rows = [
-        ["Шаблон продолжительности этапов"],
+        ["Project Point — Продолжительность этапов"],
         ["Данные начинаются с 6-й строки. Не смещайте строку с данными выше/ниже без изменения кода."],
         ["Колонки 1-7 — длительности. Колонки 11-35 — флаги этапов."],
         [],
@@ -138,8 +138,8 @@ def write_routes_import_template(filename):
     ]
     for row in dur_rows:
         ws_dur.append(row)
-    header_fill = PatternFill(start_color="D9EAF7", end_color="D9EAF7", fill_type="solid")
-    title_fill = PatternFill(start_color="EAF4EC", end_color="EAF4EC", fill_type="solid")
+    header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    title_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
     for sheet, header_row, freeze in [(ws, 4, "A5"), (ws_cond, 5, "A6"), (ws_dur, 5, "A6")]:
         sheet.cell(row=1, column=1).font = Font(bold=True, size=14)
         sheet.cell(row=1, column=1).fill = title_fill
@@ -158,7 +158,7 @@ def write_routes_import_template(filename):
 
 def write_objects_import_template(filename):
     rows = [
-        ["Шаблон создания объектов строительства Project Point"],
+        ["Project Point — Объекты строительства"],
         ["Code", "Title", "ParentCode", "ParentTitle"],
         ["OBJ-001", "Корпус 1", "EXISTING-PARENT", ""],
         ["OBJ-001-01", "Секция 1", "OBJ-001", "Корпус 1"],
@@ -223,7 +223,7 @@ def write_roles_import_template(all_permissions, filename, active_modules=None, 
     default_sheet = wb.active
     wb.remove(default_sheet)
 
-    header_fill = PatternFill(start_color="D9EAF7", end_color="D9EAF7", fill_type="solid")
+    header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
     blocked_fill = PatternFill(start_color="BFBFBF", end_color="BFBFBF", fill_type="solid")
     alt_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
     input_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
@@ -299,7 +299,7 @@ def write_roles_import_template(all_permissions, filename, active_modules=None, 
 
     info = wb.create_sheet("Инструкция")
     info_rows = [
-        ["Шаблон импорта ролей Project Point"],
+        ["Project Point — Роли и привилегии"],
         ["Как заполнять"],
         ["1. Каждый лист соответствует одному модулю Project Point."],
         ["2. В колонке 'Роль' укажите название создаваемой роли. Для одной роли оставьте одно и то же название на всех выбранных листах."],
